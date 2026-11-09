@@ -14,8 +14,8 @@ async function shot(ctxOpts, name, fn) {
   console.log(name, 'horizontal overflow px:', ov);
   await ctx.close();
 }
-await shot({ ...devices['iPhone 13'] }, 'phone', 'pallof-press');
-await shot({ ...devices['iPhone 13'] }, 'phone-full', 'affondo-rotazione');
-await shot({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 }, 'desktop', 'ponte-glutei');
+await shot({ ...devices['iPhone 13'] }, 'phone', 'bandeja');
+await shot({ ...devices['iPhone 13'] }, 'phone-full', 'volee');
+await shot({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 }, 'desktop', 'vibora');
 console.log('errors:', errs);
 await b.close();

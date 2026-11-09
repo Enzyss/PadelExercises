@@ -6,18 +6,28 @@ Ogni esercizio è animato su un manichino 3D con i muscoli coinvolti evidenziati
 ed errori da evitare. La modalità **Inizia routine** conta le ripetizioni, gestisce
 recuperi e cambi di lato e passa da sola all'esercizio successivo.
 
+Serve solo **un elastico** (più una sedia e un tappetino) e, per i colpi, la tua racchetta.
+
 | # | Esercizio | Dose | Obiettivo |
 |---|---|---|---|
+| | **Attivazione e prevenzione** | | |
 | 1 | Rotazione esterna con elastico | 2×12 | Cuffia dei rotatori, spalla stabile nei colpi alti |
 | 2 | Pull-apart con elastico | 2×12 | Muscoli tra le scapole, deltoide posteriore |
-| 3 | Estensione del polso con manubrio | 2×10 per braccio | Prevenzione dell'epicondilite |
+| 3 | Estensione del polso con elastico sotto il piede | 2×10 per braccio | Prevenzione dell'epicondilite |
 | 4 | Sollevamenti sui polpacci | 2×12 | Polpacci e tendine d'Achille |
 | 5 | Ponte glutei | 2×12 | Attivazione dei glutei |
 | 6 | Affondo laterale alternato | 2×8 per lato | Adduttori, spostamenti laterali |
 | 7 | Affondo con rotazione del busto | 2×6 per lato | Gambe + rotazione del tronco |
-| 8 | Pallof press | 2×8 per lato | Core anti-rotazione |
-| 9 | Rotazione esplosiva con elastico | 2×8 per lato | Potenza rotazionale |
-| 10 | Squat jump | 3×5 | Esplosività |
+| 8 | Dead bug | 2×8 per lato | Stabilità del core |
+| 9 | Diagonale con elastico sotto il piede | 2×8 per lato | Rotazione dal basso verso l'alto |
+| | **Colpi a vuoto (con la racchetta)** | | |
+| 10 | Volée: dritto e rovescio con split-step | 2×6 per lato | Preparazione corta, impatto davanti |
+| 11 | Bandeja | 2×6 | Profilo, preparazione alta, impatto avanti |
+| 12 | Vibora | 2×6 | Rotazione, impatto laterale, chiusura a sinistra |
+| | **Esplosività** | | |
+| 13 | Squat jump | 3×5 | Esplosività |
+
+I colpi sono animati per un destrorso; il pulsante **Mancino** li mostra a specchio.
 
 ## Come funzionano le animazioni
 
@@ -31,10 +41,14 @@ Le animazioni non sono video: ogni ripetizione è descritta in termini anatomici
   gomito, prono-supinazione) oppure con cinematica inversa quando le mani devono
   raggiungere un punto preciso (coscia, elastico, mani unite).
 - **Colonna** distribuita su tre vertebre, collo e testa separati.
+- **Racchetta** impugnata in continental: il manico attraversa il palmo in diagonale e
+  l'orientamento della racchetta deriva da prono-supinazione e angoli del polso, sempre
+  entro i limiti anatomici.
 
 `npm run verify` controlla 72 fotogrammi per esercizio (e per lato): corpo mai sotto il
 pavimento, piedi a terra che non si staccano né scivolano, ginocchia e gomiti entro i
-limiti anatomici, nessuna compenetrazione tra braccia, busto e gambe.
+limiti anatomici, prono-supinazione e polso entro i loro range, nessuna compenetrazione
+tra braccia, busto, gambe e racchetta.
 
 ## Sviluppo
 

@@ -176,17 +176,28 @@ export class Rig {
 
     // ---- arms
     this.state.arms = {};
-    for (const s of ['L', 'R']) {
+    this.racketSide = pose.props && pose.props.racket;
+    // the racket arm is solved first so the other hand can hold the throat
+    const order = this.racketSide === 'L' ? ['L', 'R'] : ['R', 'L'];
+    for (const s of order) {
       const a = pose[s];
       const sg = s === 'L' ? 1 : -1;
       const L = this.limbs[s + 'A'];
       let dir1, dir2, h, info = {};
-      if (a.mode === 'ik') {
-        const toW = (v) => a.space === 'world' ? new V3(...v) : new V3(...v).applyQuaternion(this.chestQ).add(this.chestP);
-        const toWd = (v) => a.space === 'world' ? new V3(...v) : new V3(...v).applyQuaternion(this.chestQ);
+      const toW = (v) => a.space === 'world' ? new V3(...v) : new V3(...v).applyQuaternion(this.chestQ).add(this.chestP);
+      const toWd = (v) => a.space === 'world' ? new V3(...v) : new V3(...v).applyQuaternion(this.chestQ);
+      if (a.mode === 'ik' && a.attachW > 0 && this.racketSide) {
+        // free hand blends between its own target and the racket throat
+        const r = this.racketFrame(this.racketSide);
+        const throat = r.grip.clone().addScaledVector(r.dir, 0.155).addScaledVector(r.face, 0.02);
+        const t = toW(a.t).lerp(throat, Math.min(1, a.attachW));
+        info = this.solveIK(L, t, toWd(a.hint || [sg * 0.3, -0.4, -1]));
+      } else if (a.mode === 'ik') {
         info = this.solveIK(L, toW(a.t), toWd(a.hint || [sg * 0.3, -0.4, -1]));
       } else {
-        const R = axisQ(AX.x, -(a.flex || 0) * DEG)
+        // hflex: horizontal flexion (arm swings forward around the vertical axis of the chest)
+        const R = axisQ(AX.y, -sg * (a.hflex || 0) * DEG)
+          .multiply(axisQ(AX.x, -(a.flex || 0) * DEG))
           .multiply(axisQ(AX.z, sg * (a.abd || 0) * DEG))
           .multiply(axisQ(new V3(0, -1, 0), sg * (a.rot || 0) * DEG));
         const d1 = new V3(0, -1, 0).applyQuaternion(R);
@@ -197,6 +208,12 @@ export class Rig {
         h = hh.applyQuaternion(this.chestQ);
         this.setChain(L, dir1, dir2, h);
         info.flex = a.elbow || 0;
+      }
+      if (a.racket) {
+        Object.assign(info, this.orientRacketHand(s, L, a.racket, toWd));
+        this.grip(s, a.grip == null ? 1 : a.grip);
+        this.state.arms[s] = info;
+        continue;
       }
       // forearm pronation (+) / supination (-): 65% in the forearm, 35% at the wrist
       const pron = (a.pron || 0) * DEG;
@@ -217,6 +234,61 @@ export class Rig {
       this.state.arms[s] = info;
     }
     this.root.updateMatrixWorld(true);
+  }
+
+  // Orient the hand so the racket points along r.dir with its face normal r.face.
+  // The rotation needed relative to the forearm is split anatomically:
+  // the twist about the forearm axis is pronation/supination (mostly in the
+  // forearm), the remaining swing is wrist flexion / deviation.
+  orientRacketHand(s, L, r, toWd) {
+    const sg = s === 'L' ? 1 : -1;
+    const dir = toWd(r.dir).normalize();
+    const face = toWd(r.face);
+    const Qh = new Q().setFromRotationMatrix(basis(dir, face).multiply(basis(this.racketAxis(s), new V3(0, -1, 0)).transpose()));
+    const fq = L.m.getWorldQuaternion(new Q());
+    const rel = fq.clone().invert().multiply(Qh); // hand local
+    const axis = new V3(sg, 0, 0);
+    const p = new V3(rel.x, rel.y, rel.z);
+    const proj = axis.clone().multiplyScalar(p.dot(axis));
+    const twist = new Q(proj.x, proj.y, proj.z, rel.w).normalize();
+    let tw = 2 * Math.atan2(new V3(twist.x, twist.y, twist.z).dot(axis), twist.w);
+    if (tw > Math.PI) tw -= 2 * Math.PI;
+    if (tw < -Math.PI) tw += 2 * Math.PI;
+    // forearm takes 65% of the twist
+    const fdir = L.d2.clone().applyQuaternion(fq.clone().multiply(L.q2.clone().invert()));
+    this.setWorldQuat(L.m, axisQ(fdir, tw * 0.65).multiply(fq));
+    const fq2 = L.m.getWorldQuaternion(new Q());
+    const hand = L.e;
+    hand.quaternion.copy(fq2.invert().multiply(Qh));
+    hand.updateMatrixWorld(true);
+    // wrist swing = hand local rotation without its twist component
+    const hl = hand.quaternion;
+    const pp = new V3(hl.x, hl.y, hl.z);
+    const pj = axis.clone().multiplyScalar(pp.dot(axis));
+    const tq = new Q(pj.x, pj.y, pj.z, hl.w).normalize();
+    const swing = hl.clone().multiply(tq.invert());
+    const swingDeg = 2 * Math.acos(Math.min(1, Math.abs(swing.w))) / DEG;
+    // pronation sign: positive = palm turning down from thumb-up neutral
+    return { pron: (sg * tw) / DEG, wrist: swingDeg };
+  }
+
+  // Continental grip: the handle crosses the palm diagonally, so the racket
+  // leaves the hand between thumb and index at ~125° from the forearm.
+  racketAxis(s) {
+    const sg = s === 'L' ? 1 : -1;
+    const a = 35 * DEG;
+    return new V3(sg * Math.sin(a), 0, Math.cos(a));
+  }
+
+  // racket frame from the hand holding it
+  racketFrame(s) {
+    const q = this.handFrame(s);
+    return {
+      grip: this.gripPoint(s),
+      dir: this.racketAxis(s).applyQuaternion(q),
+      face: new V3(0, -1, 0).applyQuaternion(q),
+      q,
+    };
   }
 
   grip(s, g) {
@@ -265,9 +337,11 @@ export function lerpPose(a, b, t) {
   if (a && b && typeof a === 'object' && typeof b === 'object') {
     const o = {};
     for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
-      if (!(k in a)) o[k] = structuredClone(b[k]);
-      else if (!(k in b)) o[k] = structuredClone(a[k]);
+      // a field missing on one side means its default: 0 for numbers, absent otherwise
+      if (!(k in a)) o[k] = typeof b[k] === 'number' ? b[k] * t : t < 0.5 ? undefined : structuredClone(b[k]);
+      else if (!(k in b)) o[k] = typeof a[k] === 'number' ? a[k] * (1 - t) : t < 0.5 ? structuredClone(a[k]) : undefined;
       else o[k] = lerpPose(a[k], b[k], t);
+      if (o[k] === undefined) delete o[k];
     }
     return o;
   }
@@ -285,6 +359,7 @@ export function mirrorPose(p) {
   const arm = (a) => {
     const c = structuredClone(a);
     if (c.mode === 'ik') { c.t = nx(c.t); c.hint = nx(c.hint); }
+    if (c.racket) c.racket = { dir: nx(c.racket.dir), face: nx(c.racket.face) };
     return c;
   };
   m.L = arm(p.R); m.R = arm(p.L);
@@ -295,7 +370,7 @@ export function mirrorPose(p) {
   if (p.props) {
     m.props = structuredClone(p.props);
     for (const k in m.props) if (Array.isArray(m.props[k]) && m.props[k].length === 3) m.props[k] = nx(m.props[k]);
-    if (m.props.dumbbell) m.props.dumbbell = m.props.dumbbell === 'L' ? 'R' : 'L';
+    for (const k of ['dumbbell', 'racket', 'bandFoot', 'bandHand']) if (m.props[k]) m.props[k] = m.props[k] === 'L' ? 'R' : 'L';
   }
   if (p.handSwap !== undefined) m.handSwap = p.handSwap;
   return m;

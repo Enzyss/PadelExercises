@@ -18,6 +18,7 @@ const SWITCH_SIDE = 6;
 const state = {
   idx: 0,
   side: 0,
+  hand: 0, // 0 = destrorso, 1 = mancino (vale per tutti i colpi)
   playing: true,
   speed: 1,
   phase: 0, // animation phase in reps
@@ -34,7 +35,13 @@ new ResizeObserver(() => stage.resize()).observe(stageEl);
 
 // ---------- list ----------
 const list = $('#list');
+let lastSection = null;
 EXERCISES.forEach((ex, i) => {
+  const sec = ex.section || 'Attivazione e prevenzione';
+  if (sec !== lastSection) {
+    list.appendChild(el('div', 'sec-head', sec));
+    lastSection = sec;
+  }
   const b = el('button', 'item');
   b.type = 'button';
   b.id = 'ex-' + ex.id;
@@ -50,7 +57,7 @@ EXERCISES.forEach((ex, i) => {
 });
 
 const totalSec = EXERCISES.reduce((acc, ex) => {
-  const sides = ex.sided ? 2 : 1;
+  const sides = ex.sided && !ex.handed ? 2 : 1;
   return acc + ex.sets * ex.reps * ex.dur * sides + (ex.sets - 1) * REST_SET + REST_EX;
 }, 0);
 $('#total').textContent = `${EXERCISES.length} esercizi · circa ${Math.round(totalSec / 60)} min`;
@@ -75,9 +82,10 @@ function sideMuscles(ex) {
 
 function select(i, { keepCam = false, keepSide = false } = {}) {
   state.idx = i;
-  if (!keepSide) state.side = 0;
-  state.phase = 0;
   const ex = EXERCISES[i];
+  if (ex.handed) state.side = state.hand;
+  else if (!keepSide) state.side = 0;
+  state.phase = 0;
   document.querySelectorAll('.item').forEach((b, k) => b.setAttribute('aria-current', k === i ? 'true' : 'false'));
   $('#ex-num').textContent = `${String(i + 1).padStart(2, '0')} / ${EXERCISES.length}`;
   $('#ex-name').textContent = ex.name;
@@ -109,6 +117,7 @@ function select(i, { keepCam = false, keepSide = false } = {}) {
 
 function setSide(s) {
   state.side = s;
+  if (EXERCISES[state.idx].handed) state.hand = s;
   const ex = EXERCISES[state.idx];
   $('#side').querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-pressed', k === s ? 'true' : 'false'));
   stage.setMuscles(ex.prim, ex.sec, sideMuscles(ex));
@@ -190,7 +199,7 @@ function onRepDone() {
   beep(r.rep === ex.reps ? 990 : 740, 0.07);
   if (r.rep < ex.reps) return updateRoutineUI();
   // reps finished
-  if (ex.sided && state.side === 0) {
+  if (ex.sided && !ex.handed && state.side === 0) {
     r.mode = 'switch'; r.left = SWITCH_SIDE; r.rep = 0;
   } else if (r.set < ex.sets) {
     r.mode = 'rest'; r.left = REST_SET;
@@ -213,7 +222,7 @@ function endRest() {
     select(state.idx + 1);
   } else if (r.mode === 'rest') {
     r.set++;
-    if (ex.sided) setSide(0);
+    if (ex.sided && !ex.handed) setSide(0);
   } else return;
   r.mode = 'work'; r.rep = 0; state.phase = 0;
   beep(990, 0.2);

@@ -10,6 +10,53 @@ import { computeMuscleWeights } from './muscles.js';
 
 const V3 = THREE.Vector3;
 
+// Padel racket: group local +Y = handle axis (towards the head), local +Z = face normal.
+// Origin = centre of the grip (where the hand closes).
+function buildRacket() {
+  const g = new THREE.Group();
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x1d2633, roughness: 0.35, metalness: 0.3 });
+  const faceMat = new THREE.MeshStandardMaterial({ color: 0x2f6fe0, roughness: 0.5, metalness: 0.1 });
+  const gripMat = new THREE.MeshStandardMaterial({ color: 0xe9edf2, roughness: 0.8 });
+  // head: rounded "teardrop" outline, 26 cm wide, 30 cm long, 3.8 cm thick
+  const shape = new THREE.Shape();
+  const W = 0.13, top = 0.43, neck = 0.15;
+  shape.moveTo(-0.035, neck);
+  shape.bezierCurveTo(-0.09, neck + 0.02, -W, neck + 0.07, -W, neck + 0.14);
+  shape.bezierCurveTo(-W, top - 0.03, -0.07, top, 0, top);
+  shape.bezierCurveTo(0.07, top, W, top - 0.03, W, neck + 0.14);
+  shape.bezierCurveTo(W, neck + 0.07, 0.09, neck + 0.02, 0.035, neck);
+  shape.lineTo(-0.035, neck);
+  const head = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.038, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.006, bevelSegments: 2, curveSegments: 18 }), faceMat);
+  head.position.z = -0.019;
+  head.castShadow = true;
+  // frame ring
+  const ring = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.042, bevelEnabled: false, curveSegments: 18 }), frameMat);
+  ring.scale.set(1.05, 1.0, 1);
+  ring.position.set(0, -0.006, -0.021);
+  ring.castShadow = true;
+  // holes pattern (dark dots) on both faces
+  const dotGeo = new THREE.CircleGeometry(0.006, 10);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0x0d1830 });
+  for (let y = neck + 0.05; y < top - 0.03; y += 0.032) {
+    for (let x = -0.1; x <= 0.1; x += 0.032) {
+      if ((x / W) ** 2 + ((y - (neck + top) / 2) / ((top - neck) / 2)) ** 2 > 0.7) continue;
+      for (const z of [0.024, -0.024]) {
+        const d = new THREE.Mesh(dotGeo, dotMat);
+        d.position.set(x, y, z);
+        if (z < 0) d.rotation.y = Math.PI;
+        g.add(d);
+      }
+    }
+  }
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.17, 16), gripMat);
+  handle.position.y = 0.035;
+  handle.castShadow = true;
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.012, 16), frameMat);
+  cap.position.y = -0.05;
+  g.add(head, ring, handle, cap);
+  return g;
+}
+
 export class Stage {
   constructor(container, { modelUrl = 'Xbot.glb', bloom = true, pixelRatio } = {}) {
     this.container = container;
@@ -155,6 +202,9 @@ export class Stage {
     db.visible = false;
     this.dumbbell = db;
     s.add(db);
+    this.racket = buildRacket();
+    this.racket.visible = false;
+    s.add(this.racket);
   }
 
   async loadModel(url) {

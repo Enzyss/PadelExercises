@@ -28,7 +28,25 @@ export function applyProps(stage, ex, pose) {
     const h = gl.clone().add(gr).multiplyScalar(0.5);
     // the band leaves the anchor and splits to both fists
     stage.updateBand([a, a.clone().lerp(h, 0.5), h]);
+  } else if (pr.band === 'foot' && pp.bandFoot) {
+    // band trapped under the forefoot, held by one or both hands
+    const toe = rig.b[pp.bandFoot === 'L' ? 'LeftToeBase' : 'RightToeBase'].getWorldPosition(new V3());
+    const heel = rig.b[pp.bandFoot === 'L' ? 'LeftFoot' : 'RightFoot'].getWorldPosition(new V3());
+    const under = toe.clone().lerp(heel, 0.35);
+    under.y = 0.012;
+    const hands = pp.bandHand === 'L' ? gl : pp.bandHand === 'R' ? gr : gl.clone().add(gr).multiplyScalar(0.5);
+    const side = new V3(pp.bandFoot === 'L' ? 0.05 : -0.05, 0, 0);
+    stage.updateBand([under.clone().sub(side), under.clone().add(side).setY(0.02), hands]);
   } else stage.updateBand(null, false);
+  // racket
+  const rs = pp.racket;
+  stage.racket.visible = !!rs;
+  if (rs) {
+    const r = rig.racketFrame(rs);
+    const m = new THREE.Matrix4().makeBasis(new V3().crossVectors(r.dir, r.face).normalize(), r.dir, r.face);
+    stage.racket.quaternion.setFromRotationMatrix(m);
+    stage.racket.position.copy(r.grip);
+  }
   // dumbbell in one hand
   const db = pp.dumbbell;
   stage.dumbbell.visible = !!db;

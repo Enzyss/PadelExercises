@@ -116,7 +116,7 @@ const PA = {
 };
 
 // ===================================================================
-//  3. Estensione del polso con manubrio (seduto)
+//  3. Estensione del polso con elastico sotto il piede (seduto)
 // ===================================================================
 const SIT = P({
   hips: { p: [0, 0.635, -0.04], r: [34, 0, 0] },
@@ -125,12 +125,12 @@ const SIT = P({
   FL: { x: 0.16, z: 0.4, out: 10 },
   FR: { x: -0.16, z: 0.4, out: 10 },
   L: { mode: 'ik', space: 'world', t: [0.15, 0.665, 0.3], hint: [0.6, -1, -0.4], pron: 80, wflex: 5, grip: 0.3 },
-  props: { bench: [0, 0, -0.1], dumbbell: 'R' },
+  props: { bench: [0, 0, -0.1], bandFoot: 'R', bandHand: 'R' },
 });
 const wristArm = (wflex) => ({ mode: 'ik', space: 'world', t: [-0.14, 0.672, 0.51], hint: [-0.35, -1, -0.5], pron: 88, wflex, grip: 1 });
 const WR = {
   id: 'estensione-polso',
-  name: 'Estensione del polso con manubrio',
+  name: 'Estensione del polso con elastico',
   short: 'Estensione polso',
   sets: 2, reps: 10, unit: 'rip per braccio',
   tempo: '1 s su · 2–3 s giù',
@@ -138,19 +138,19 @@ const WR = {
   sided: true,
   sideLabels: ['Braccio destro', 'Braccio sinistro'],
   sideMuscles: 'R',
-  equip: 'Manubrio 1–2 kg o bottiglia d\'acqua, sedia o panca',
+  equip: 'Elastico leggero e una sedia',
   prim: ['estensori'],
   sec: ['flessori'],
   why: 'Gli estensori del polso lavorano a ogni impatto con la palla. Rinforzarli, soprattutto nella fase di discesa lenta, è uno dei metodi più efficaci per prevenire l\'epicondilite (il "gomito del tennista").',
   cues: [
     'Seduto, avambraccio appoggiato sulla coscia, il polso esce oltre il ginocchio.',
-    'Palmo verso il basso, presa morbida sul manubrio.',
+    'Blocca un capo dell\'elastico sotto il piede dello stesso lato, l\'altro capo in mano con il palmo verso il basso.',
     'Solleva il dorso della mano muovendo solo il polso.',
     'Scendi lentamente in 2–3 secondi: è la parte più utile dell\'esercizio.',
     'L\'avambraccio resta fermo sulla coscia per tutta la serie.',
   ],
-  errors: ['Sollevare l\'avambraccio dalla coscia', 'Usare un peso troppo pesante', 'Scendere di colpo'],
-  props: { mat: [0.9, 0.9, 0, 0.1] },
+  errors: ['Sollevare l\'avambraccio dalla coscia', 'Usare un elastico troppo duro', 'Lasciar tornare l\'elastico di colpo'],
+  props: { band: 'foot', mat: [0.9, 0.9, 0, 0.1] },
   cam: { p: [-1.9, 1.15, 1.6], t: [0, 0.62, 0.25] },
   keys: [
     { t: 0, pose: P({ R: wristArm(30) }, SIT) },
@@ -323,92 +323,350 @@ const LUNGE_ROT = {
 };
 
 // ===================================================================
-//  8. Pallof press
+//  8. Dead bug
 // ===================================================================
-const press = (s, z, y = -0.07) => ({ mode: 'ik', t: [s * 0.04, y, z], hint: [s * 0.5, -1, -0.4], pron: 0, grip: 0.9 });
-const ATH = P({
-  hips: { p: [0, 0.985, -0.01], r: [10, 0, 0] },
-  spine: [-4, 0, 0],
-  head: [-4, 0, 0],
-  FL: { x: 0.17, z: -0.02, out: 10 },
-  FR: { x: -0.17, z: -0.02, out: 10 },
-  props: { anchor: [1.05, 1.2, 0.2] },
+const DB_LEG = { x: 0.11, z: 0.493, y: 0.7, heel: -90, toeFlat: false, toe: 6 };
+const DB_BASE = P({
+  hips: { p: [0, 0.168, 0], r: [-90, 0, 0] },
+  spine: [0, 0, 0],
+  head: [8, 0, 0],
+  L: { mode: 'fk', flex: 90, abd: 6, rot: 0, elbow: 4, pron: 0, grip: 0.3 },
+  R: { mode: 'fk', flex: 90, abd: 6, rot: 0, elbow: 4, pron: 0, grip: 0.3 },
+  FL: { ...DB_LEG, knee: [0.1, 1, -0.4] },
+  FR: { ...DB_LEG, x: -0.11, knee: [-0.1, 1, -0.4] },
 });
-const PP_IN = P({ L: press(1, 0.2, -0.1), R: press(-1, 0.2, -0.1), effort: 0.4 }, ATH);
-const PP_OUT = P({ L: press(1, 0.5, -0.04), R: press(-1, 0.5, -0.04), effort: 1 }, ATH);
-const PALLOF = {
-  id: 'pallof-press',
-  name: 'Pallof press',
-  short: 'Pallof press',
+// right arm overhead + left leg long, a few cm above the floor
+const DB_EXT = P({
+  R: { flex: 165, abd: 8, elbow: 6 },
+  FL: { z: 0.935, y: 0.35, heel: -82 },
+  effort: 1,
+}, DB_BASE);
+const DEADBUG = {
+  id: 'dead-bug',
+  name: 'Dead bug',
+  short: 'Dead bug',
   sets: 2, reps: 8, unit: 'rip per lato',
-  tempo: '1 s avanti · 2 s fermo · 1 s indietro',
-  dur: 4.2,
-  sided: true,
-  sideLabels: ['Elastico a sinistra', 'Elastico a destra'],
-  equip: 'Elastico agganciato a una porta o a un palo, all\'altezza del petto',
-  prim: ['obliqui', 'addome'],
-  sec: ['gluteoMedio', 'deltAnt'],
-  why: 'Allena il core a resistere alla rotazione. Un tronco stabile trasferisce la forza delle gambe alla racchetta e protegge la schiena quando colpisci in torsione.',
+  tempo: '2 s in allungamento · 2 s ritorno',
+  dur: 7.2,
+  mirror: 'alt',
+  equip: 'Tappetino',
+  prim: ['addome', 'obliqui'],
+  sec: ['quadricipiti', 'deltAnt'],
+  why: 'Insegna al core a tenere ferma la zona lombare mentre braccia e gambe si muovono. È la stessa stabilità che ti serve quando colpisci in allungo o sopra la testa senza perdere l\'equilibrio.',
   cues: [
-    'Di fianco all\'ancoraggio, elastico in tensione, mani unite al centro del petto.',
-    'Ginocchia morbide, bacino neutro, addome attivo.',
-    'Spingi le mani dritte in avanti senza farti ruotare dall\'elastico.',
-    'Tieni 2 secondi a braccia tese, poi torna al petto.',
-    'Fai tutte le ripetizioni, poi gira dall\'altro lato.',
+    'Supino, braccia tese verso il soffitto, anche e ginocchia piegate a 90°.',
+    'Schiaccia la zona lombare contro il tappetino e tienila lì per tutta la serie.',
+    'Allunga lentamente un braccio dietro la testa e la gamba opposta in avanti, appena sopra il pavimento.',
+    'Espira mentre allunghi, torna al centro e cambia lato.',
   ],
-  errors: ['Lasciare ruotare busto o bacino', 'Trattenere il respiro', 'Spalle che salgono'],
-  props: { band: 'anchor', mat: [0.8, 0.9, 0, 0] },
-  cam: { p: [1.2, 1.5, 3.3], t: [0.3, 1.0, 0.1] },
+  errors: ['Staccare la zona lombare dal tappetino', 'Andare veloce', 'Trattenere il respiro'],
+  props: { mat: [0.66, 1.9, 0, 0.0] },
+  cam: { p: [2.7, 1.25, 0.6], t: [0, 0.35, 0.05] },
   keys: [
-    { t: 0, pose: PP_IN },
-    { t: 0.2, pose: PP_OUT, ease: 'io' },
-    { t: 0.66, pose: PP_OUT, ease: 'lin' },
-    { t: 0.86, pose: PP_IN, ease: 'io' },
-    { t: 1, pose: PP_IN, ease: 'lin' },
+    { t: 0, pose: DB_BASE },
+    { t: 0.42, pose: DB_EXT, ease: 'sine' },
+    { t: 0.52, pose: DB_EXT, ease: 'lin' },
+    { t: 1, pose: DB_BASE, ease: 'sine' },
   ],
 };
 
 // ===================================================================
-//  9. Rotazione esplosiva con elastico
+//  9. Diagonale con elastico sotto il piede (dal basso al alto)
 // ===================================================================
-const rotArms = (s) => ({ mode: 'ik', t: [s * 0.045, -0.04, 0.46], hint: [s * 0.6, -1, -0.3], pron: 0, grip: 0.9 });
-const ROT_BASE = P({
-  hips: { p: [0, 0.965, -0.01], r: [12, 0, 0] },
-  FL: { x: 0.25, z: -0.02, out: 12, pivot: 'ball' },
-  FR: { x: -0.25, z: -0.02, out: 12, pivot: 'ball' },
-  L: rotArms(1), R: rotArms(-1),
-  props: { anchor: [1.1, 1.12, 0.35] },
+const LIFT_BASE = P({
+  FL: { x: 0.21, z: 0, out: 12 },
+  FR: { x: -0.21, z: 0, out: 12 },
+  props: { bandFoot: 'L' },
 });
-const ROT_LOAD = P({ hips: { r: [12, 32, 0], p: [0.03, 0.955, -0.01] }, spine: [4, 30, 0], head: [-6, -10, 0], FR: { heel: 16, out: -14 }, effort: 0.3 }, ROT_BASE);
-const ROT_FIRE = P({ hips: { r: [10, -34, 0], p: [-0.04, 0.975, -0.01] }, spine: [4, -32, 0], head: [-6, 12, 0], FL: { heel: 24, out: -22 }, effort: 1 }, ROT_BASE);
-const ROT = {
-  id: 'rotazione-esplosiva',
-  name: 'Rotazione esplosiva con elastico',
-  short: 'Rotazione esplosiva',
+const liftLow = P({
+  hips: { p: [0.04, 0.79, -0.1], r: [34, 20, 0] },
+  spine: [12, 16, 0],
+  head: [-20, 10, 0],
+  L: { mode: 'ik', space: 'world', t: [0.3, 0.46, 0.3], hint: [0.6, -0.4, -0.7], pron: 30, grip: 1 },
+  R: { mode: 'ik', space: 'world', t: [0.22, 0.48, 0.35], hint: [-0.3, -0.5, -0.8], pron: 30, grip: 1 },
+  effort: 0.3,
+}, LIFT_BASE);
+const liftHigh = P({
+  hips: { p: [-0.02, 1.03, 0.01], r: [2, -12, 0] },
+  spine: [-4, -30, 0],
+  head: [4, -14, 0],
+  L: { mode: 'ik', space: 'world', t: [-0.22, 1.76, 0.3], hint: [0.4, -1, 0.1], pron: 20, grip: 1 },
+  R: { mode: 'ik', space: 'world', t: [-0.3, 1.72, 0.25], hint: [-0.7, -1, -0.1], pron: 20, grip: 1 },
+  effort: 1,
+}, LIFT_BASE);
+const LIFT = {
+  id: 'diagonale-elastico',
+  name: 'Diagonale con elastico sotto il piede',
+  short: 'Diagonale elastico',
   sets: 2, reps: 8, unit: 'rip per lato',
-  tempo: 'veloce in rotazione · 1,5 s ritorno',
-  dur: 2.4,
+  tempo: 'veloce in salita · 2 s in discesa',
+  dur: 2.8,
   sided: true,
-  sideLabels: ['Elastico a sinistra', 'Elastico a destra'],
-  equip: 'Elastico medio agganciato all\'altezza del petto',
+  sideLabels: ['Sotto il piede sinistro', 'Sotto il piede destro'],
+  equip: 'Elastico medio',
   prim: ['obliqui', 'glutei'],
-  sec: ['addome', 'deltAnt', 'pettorali'],
-  why: 'Allena la rotazione veloce che genera potenza nel dritto, nello smash e nella vibora. La forza parte dai piedi, passa dalle anche e arriva alle braccia.',
+  sec: ['quadricipiti', 'deltAnt', 'addome'],
+  why: 'Allena la rotazione dal basso verso l\'alto che dà potenza a smash, vibora e uscite di parete. La forza parte dalle gambe, passa dalle anche e arriva alle braccia, senza bisogno di agganciare l\'elastico.',
   cues: [
-    'Di fianco all\'ancoraggio, piedi larghi, ginocchia morbide, braccia tese davanti al petto.',
-    'Ruota in modo esplosivo partendo dalle anche, le braccia seguono il busto.',
-    'Il piede dietro ruota sull\'avampiede, come nel colpo.',
-    'Ritorna lentamente controllando l\'elastico.',
-    'Fai tutte le ripetizioni, poi gira dall\'altro lato.',
+    'Blocca l\'elastico sotto il piede sinistro, impugna l\'altro capo con entrambe le mani.',
+    'Parti accosciato, busto ruotato verso il piede sinistro, mani vicino alla caviglia.',
+    'Spingi con le gambe e ruota, portando le mani in diagonale sopra la spalla destra.',
+    'Le braccia restano quasi tese: il movimento lo fanno anche e busto.',
+    'Torna giù lentamente, poi fai l\'altro lato.',
   ],
-  errors: ['Tirare solo con le braccia', 'Piegare i gomiti', 'Bloccare il piede dietro'],
-  props: { band: 'anchor', mat: [0.9, 0.9, 0, 0] },
-  cam: { p: [0.4, 1.65, 3.5], t: [0.2, 1.0, 0.1] },
+  errors: ['Tirare solo con le braccia', 'Inarcare la schiena in alto', 'Piegare le ginocchia verso l\'interno'],
+  props: { band: 'foot', mat: [0.9, 0.9, 0, 0] },
+  cam: { p: [0.5, 1.4, 3.4], t: [0, 1.0, 0.1] },
   keys: [
-    { t: 0, pose: ROT_LOAD },
-    { t: 0.17, pose: ROT_FIRE, ease: 'out' },
-    { t: 0.3, pose: ROT_FIRE, ease: 'lin' },
-    { t: 1, pose: ROT_LOAD, ease: 'sine' },
+    { t: 0, pose: liftLow },
+    { t: 0.24, pose: liftHigh, ease: 'out' },
+    { t: 0.34, pose: liftHigh, ease: 'lin' },
+    { t: 1, pose: liftLow, ease: 'sine' },
+  ],
+};
+
+// ===================================================================
+//  COLPI A VUOTO (shadow) — destrorso; il lato B è il mancino
+//  La rete è verso +Z. Mano destra = racchetta.
+// ===================================================================
+// racket arm by joint angles; the racket orientation follows from the hand
+const fk = (o) => ({ mode: 'fk', flex: 0, abd: 0, hflex: 0, rot: 0, elbow: 90, pron: 0, wflex: 0, wdev: 0, grip: 1, ...o });
+// free (left) hand: chest-space target, blended onto the racket throat by attachW
+const freeL = (t, hint, attachW = 0, grip = 0.3) => ({ mode: 'ik', t, hint, attachW, grip, pron: 10 });
+const throat = freeL([0.02, -0.16, 0.3], [0.7, -1, -0.3], 1, 0.5);
+const R_READY = { mode: 'ik', space: 'world', t: [-0.131, 1.092, 0.296], hint: [-0.4, -1, -0.2], pron: -9, wflex: -8, wdev: 20, grip: 1 };
+const NET = P({
+  hips: { p: [0, 0.95, -0.02], r: [12, 0, 0] },
+  spine: [4, 0, 0],
+  head: [-10, 0, 0],
+  FL: { x: 0.24, z: 0, out: 10, pivot: 'ball' },
+  FR: { x: -0.24, z: 0, out: 10, pivot: 'ball' },
+  R: R_READY,
+  L: throat,
+  props: { racket: 'R' },
+});
+const SPLIT_UP = P({ hips: { p: [0, 1.02, -0.02] }, FL: { heel: 18, y: 0.03, toeFlat: false }, FR: { heel: 18, y: 0.03, toeFlat: false } }, NET);
+const SPLIT_LAND = P({ hips: { p: [0, 0.92, -0.02] } }, NET);
+
+// ---------- Volée (dritto + rovescio) ----------
+const balanceL = freeL([0.36, -0.2, 0.3], [0.8, -1, -0.3]);
+const V_FH_PREP = P({
+  hips: { r: [12, -15, 0] }, spine: [4, -22, 0], head: [-10, 18, 0],
+  R: { mode: 'ik', space: 'world', t: [-0.34, 1.267, 0.148], hint: [-0.5, -1, 0.1], pron: -11, wflex: -48, wdev: -2, grip: 1 },
+  L: balanceL,
+}, SPLIT_LAND);
+const V_FH_STEP = P({ FL: { x: 0.18, z: 0.2, y: 0.06, heel: -6, toeFlat: false }, hips: { p: [0, 0.94, 0.05] } }, V_FH_PREP);
+const V_FH_HIT = P({
+  hips: { p: [0.02, 0.9, 0.14], r: [14, -8, 0] }, spine: [6, -10, 0], head: [-12, 10, 0],
+  FL: { x: 0.16, z: 0.4, y: 0, heel: 0 }, FR: { heel: 10 },
+  R: { mode: 'ik', space: 'world', t: [-0.257, 1.174, 0.41], hint: [-0.7, -1, 0.2], pron: 9, wflex: -49, wdev: -25, grip: 1 },
+  effort: 1,
+}, V_FH_PREP);
+const V_FH_FOLLOW = P({ R: { mode: 'ik', space: 'world', t: [-0.22, 1.08, 0.53], hint: [-0.7, -1, 0.2], pron: -12, wflex: -45, wdev: -25, grip: 1 } }, V_FH_HIT);
+const V_FH_BACK = P({ FL: { x: 0.2, z: 0.2, y: 0.05, heel: 8, toeFlat: false }, hips: { p: [0, 0.94, 0.05] }, effort: 0.2 }, P({ R: R_READY, L: throat }, V_FH_PREP));
+
+const balanceBackL = freeL([0.45, -0.28, -0.12], [0.6, -1, 0.3]);
+const V_BH_PREP = P({
+  hips: { r: [12, 16, 0] }, spine: [4, 22, 0], head: [-10, -20, 0],
+  R: { mode: 'ik', space: 'world', t: [0.17, 1.29, 0.31], hint: [0.3, -0.8, 1], pron: -7, wflex: 10, wdev: -25, grip: 1 },
+  L: throat,
+}, SPLIT_LAND);
+const V_BH_STEP = P({ FR: { x: -0.18, z: 0.2, y: 0.06, heel: -6, toeFlat: false }, hips: { p: [0, 0.94, 0.05] } }, V_BH_PREP);
+const V_BH_HIT = P({
+  hips: { p: [-0.02, 0.9, 0.14], r: [14, 8, 0] }, spine: [6, 10, 0], head: [-12, -10, 0],
+  FR: { x: -0.16, z: 0.4, y: 0, heel: 0 }, FL: { heel: 10 },
+  R: { mode: 'ik', space: 'world', t: [0.27, 1.17, 0.6], hint: [0.2, -1, 0.7], pron: -30, wflex: 12, wdev: -3, grip: 1 },
+  L: balanceBackL,
+  effort: 1,
+}, V_BH_PREP);
+const V_BH_FOLLOW = P({ R: { mode: 'ik', space: 'world', t: [0.21, 1.07, 0.64], hint: [0, -1, 0.2], pron: -15, wflex: 12, wdev: -3, grip: 1 } }, V_BH_HIT);
+const V_BH_BACK = P({ FR: { x: -0.2, z: 0.2, y: 0.05, heel: 8, toeFlat: false }, hips: { p: [0, 0.94, 0.05] }, effort: 0.2 }, P({ R: R_READY, L: freeL([0.42, -0.16, 0.34], [0.8, -1, -0.2], 0.4, 0.4) }, V_BH_PREP));
+
+const VOLLEY = {
+  id: 'volee',
+  name: 'Volée a vuoto: dritto e rovescio',
+  short: 'Volée',
+  section: 'Colpi a vuoto',
+  sets: 2, reps: 6, unit: 'per lato',
+  tempo: 'split-step · passo · impatto corto',
+  dur: 5.2,
+  sided: true,
+  sideLabels: ['Destrorso', 'Mancino'],
+  handed: true,
+  equip: 'La tua racchetta, senza palla',
+  prim: ['deltAnt', 'estensori'],
+  sec: ['obliqui', 'quadricipiti', 'cuffia'],
+  why: 'Ripetere il gesto a vuoto fissa i punti chiave della volée prima di entrare in campo: split-step, preparazione corta, impatto davanti al corpo e polso fermo. Scalda spalla e avambraccio con lo stesso movimento che userai a rete.',
+  cues: [
+    'Posizione di attesa: ginocchia flesse, racchetta davanti al petto con la testa in alto, l\'altra mano sul cuore della racchetta.',
+    'Split-step: un piccolo saltello sugli avampiedi quando l\'avversario colpisce.',
+    'Preparazione corta: ruoti le spalle, la racchetta resta davanti e sopra il polso.',
+    'Passo in avanti con il piede opposto al colpo e impatto davanti al corpo.',
+    'Accompagna poco in avanti e in basso, con la faccia della racchetta leggermente aperta. Torna subito in posizione.',
+  ],
+  errors: ['Caricare troppo indietro la racchetta', 'Far cadere la testa della racchetta sotto il polso', 'Colpire di fianco o dietro il corpo', 'Dimenticare lo split-step'],
+  props: { mat: [1.0, 1.2, 0, 0.15] },
+  cam: { p: [1.6, 1.55, 3.2], t: [0, 1.0, 0.2] },
+  keys: [
+    { t: 0, pose: NET },
+    { t: 0.04, pose: SPLIT_UP, ease: 'out' },
+    { t: 0.08, pose: SPLIT_LAND, ease: 'in' },
+    { t: 0.14, pose: V_FH_PREP, ease: 'sine' },
+    { t: 0.18, pose: V_FH_STEP, ease: 'sine' },
+    { t: 0.22, pose: V_FH_HIT, ease: 'io' },
+    { t: 0.26, pose: V_FH_FOLLOW, ease: 'out' },
+    { t: 0.31, pose: V_FH_FOLLOW, ease: 'lin' },
+    { t: 0.37, pose: V_FH_BACK, ease: 'sine' },
+    { t: 0.46, pose: NET, ease: 'sine' },
+    { t: 0.5, pose: NET, ease: 'lin' },
+    { t: 0.54, pose: SPLIT_UP, ease: 'out' },
+    { t: 0.58, pose: SPLIT_LAND, ease: 'in' },
+    { t: 0.64, pose: V_BH_PREP, ease: 'sine' },
+    { t: 0.68, pose: V_BH_STEP, ease: 'sine' },
+    { t: 0.72, pose: V_BH_HIT, ease: 'io' },
+    { t: 0.76, pose: V_BH_FOLLOW, ease: 'out' },
+    { t: 0.81, pose: V_BH_FOLLOW, ease: 'lin' },
+    { t: 0.87, pose: V_BH_BACK, ease: 'sine' },
+    { t: 0.96, pose: NET, ease: 'sine' },
+    { t: 1, pose: NET, ease: 'lin' },
+  ],
+};
+
+// ---------- Bandeja ----------
+const SIDE_ON = { hips: { p: [0, 0.97, -0.08], r: [6, -62, 0] }, spine: [0, -18, 0], head: [0, 55, 0] };
+const B_TURN = P({
+  ...SIDE_ON,
+  FL: { x: 0.24, z: 0, out: -50 },
+  FR: { x: -0.1, z: -0.34, out: 72, y: 0 },
+  R: { mode: 'ik', space: 'world', t: [-0.27, 1.36, -0.26], hint: [-0.3, -0.4, -1], pron: -60, wflex: -11, wdev: 20, grip: 1 },
+  L: freeL([0.42, 0.45, 0.22], [0.6, -1, -0.2]),
+}, NET);
+const B_PREP = P({
+  hips: { p: [0, 0.99, -0.16], r: [4, -66, 0] },
+  FL: { x: 0.24, z: 0, out: -54 },
+  FR: { x: -0.1, z: -0.34, out: 74 },
+  R: { mode: 'ik', space: 'world', t: [-0.12, 1.53, -0.36], hint: [-0.4, -0.1, -1], pron: -70, wflex: -45, wdev: -15, grip: 1 },
+  L: freeL([0.4, 0.6, 0.18], [0.6, -1, -0.2]),
+}, B_TURN);
+const B_SWING = (prep) => P({ R: { mode: 'ik', space: 'world', t: [-0.36, 1.62, -0.02], hint: [-0.8, -0.6, -0.4], pron: -40, wflex: -45, wdev: -15, grip: 1 } }, prep);
+const B_HIT = P({
+  hips: { p: [0.02, 0.99, -0.04], r: [4, -46, 0] }, spine: [2, -10, 0], head: [-6, 40, 0],
+  FR: { heel: 24 },
+  R: { mode: 'ik', space: 'world', t: [-0.198, 1.645, 0.542], hint: [-0.7, -0.7, -0.2], pron: -4, wflex: -42, wdev: -18, grip: 1 },
+  L: freeL([0.12, -0.12, 0.3], [0.8, -1, -0.2]),
+  effort: 1,
+}, B_PREP);
+const B_FOLLOW = P({
+  hips: { p: [0.04, 0.97, 0.04], r: [6, -38, 0] }, spine: [6, -6, 0], head: [-10, 32, 0],
+  FR: { heel: 34 },
+  R: { mode: 'ik', space: 'world', t: [-0.19, 1.3, 0.58], hint: [-0.6, -1, 0], pron: -30, wflex: -35, wdev: -20, grip: 1 },
+  effort: 0.5,
+}, B_HIT);
+
+// right foot steps back into the side-on stance and forward again to recover
+const footUp = { FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } };
+const B_STEP_BACK = P({ ...footUp, L: freeL([0.42, 0.02, 0.3], [0.7, -1, -0.2], 0, 0.3), R: { t: [-0.32, 1.24, 0.08], hint: [-0.6, -1, 0], pron: -35, wflex: -10, wdev: 20 } }, lerpPose(NET, B_TURN, 0.5));
+const B_STEP_FWD = P(footUp, lerpPose(B_FOLLOW, NET, 0.5));
+
+const BANDEJA = {
+  id: 'bandeja',
+  name: 'Bandeja a vuoto',
+  short: 'Bandeja',
+  section: 'Colpi a vuoto',
+  sets: 2, reps: 6, unit: 'rip',
+  tempo: 'girata · preparazione alta · impatto · chiusura in avanti',
+  dur: 3.6,
+  sided: true,
+  sideLabels: ['Destrorso', 'Mancino'],
+  handed: true,
+  equip: 'La tua racchetta, senza palla',
+  prim: ['deltAnt', 'cuffia'],
+  sec: ['obliqui', 'tricipiti', 'estensori'],
+  why: 'La bandeja serve a difendere la rete con controllo. Ripeterla a vuoto allena la posizione di profilo, la preparazione alta e l\'impatto davanti al corpo, e scalda la spalla nella posizione che userai in partita.',
+  cues: [
+    'Gira di profilo: spalla sinistra verso la rete, piede destro indietro.',
+    'Prepara alta: gomito all\'altezza della spalla, racchetta su e dietro, braccio sinistro che indica la palla.',
+    'Colpisci davanti e a destra della testa, braccio quasi disteso, faccia leggermente aperta per il taglio.',
+    'Resta di profilo all\'impatto: il busto ruota poco.',
+    'Chiudi in avanti verso la rete, il braccio sinistro si raccoglie sul petto per l\'equilibrio.',
+  ],
+  errors: ['Girarsi frontali alla rete', 'Colpire dietro la testa', 'Chiudere verso il basso come uno smash', 'Braccio sinistro inattivo'],
+  props: { mat: [1.0, 1.3, 0, -0.1] },
+  cam: { p: [-2.6, 1.6, 2.3], t: [0, 1.25, 0] },
+  keys: [
+    { t: 0, pose: NET },
+    { t: 0.08, pose: B_STEP_BACK, ease: 'sine' },
+    { t: 0.16, pose: B_TURN, ease: 'sine' },
+    { t: 0.36, pose: B_PREP, ease: 'sine' },
+    { t: 0.44, pose: B_PREP, ease: 'lin' },
+    { t: 0.49, pose: B_SWING(B_PREP), ease: 'in' },
+    { t: 0.53, pose: B_HIT, ease: 'lin' },
+    { t: 0.62, pose: B_FOLLOW, ease: 'out' },
+    { t: 0.7, pose: B_FOLLOW, ease: 'lin' },
+    { t: 0.85, pose: B_STEP_FWD, ease: 'sine' },
+    { t: 1, pose: NET, ease: 'sine' },
+  ],
+};
+
+// ---------- Vibora ----------
+const VB_PREP = P({
+  hips: { p: [0, 0.98, -0.16], r: [6, -70, 0] }, spine: [2, -22, 0], head: [-2, 62, 0],
+  R: { mode: 'ik', space: 'world', t: [-0.22, 1.45, -0.36], hint: [-0.3, -0.3, -1], pron: -75, wflex: -55, wdev: 0, grip: 1 },
+  L: freeL([0.38, 0.6, 0.16], [0.6, -1, -0.2]),
+}, B_PREP);
+const VB_HIT = P({
+  hips: { p: [0.02, 0.98, -0.02], r: [6, -34, 0] }, spine: [4, 2, 0], head: [-6, 30, 0],
+  FR: { heel: 30, out: 60 },
+  R: { mode: 'ik', space: 'world', t: [-0.466, 1.52, 0.066], hint: [-0.9, -0.5, -0.1], pron: -28, wflex: -27, wdev: -25, grip: 1 },
+  L: freeL([0.12, -0.14, 0.3], [0.8, -1, -0.2]),
+  effort: 1,
+}, VB_PREP);
+const VB_FOLLOW = P({
+  hips: { p: [0.05, 0.94, 0.08], r: [10, -18, 0] }, spine: [12, 14, 0], head: [-16, 12, 0],
+  FR: { heel: 44, out: 40 },
+  R: { mode: 'ik', space: 'world', t: [0.1, 1.04, 0.33], hint: [-0.5, -1, 0.2], pron: 60, wflex: 10, wdev: -10, grip: 1 },
+  effort: 0.5,
+}, VB_HIT);
+
+const VB_STEP_FWD = P(footUp, lerpPose(VB_FOLLOW, NET, 0.5));
+
+const VIBORA = {
+  id: 'vibora',
+  name: 'Vibora a vuoto',
+  short: 'Vibora',
+  section: 'Colpi a vuoto',
+  sets: 2, reps: 6, unit: 'rip',
+  tempo: 'girata · preparazione dietro · colpo veloce di lato · chiusura a sinistra',
+  dur: 3.4,
+  sided: true,
+  sideLabels: ['Destrorso', 'Mancino'],
+  handed: true,
+  equip: 'La tua racchetta, senza palla',
+  prim: ['deltAnt', 'obliqui', 'cuffia'],
+  sec: ['pettorali', 'estensori', 'dorsali'],
+  why: 'La vibora è più aggressiva della bandeja: più rotazione del busto, impatto più laterale e taglio laterale con pronazione. Farla a vuoto prepara spalla, polso e tronco a un gesto veloce che senza riscaldamento sovraccarica gomito e spalla.',
+  cues: [
+    'Girata di profilo come nella bandeja, ma con la racchetta più dietro la schiena.',
+    'Colpisci più di lato, a destra della testa, all\'altezza della spalla o poco sopra.',
+    'Il busto ruota di più verso la rete e il piede destro gira sull\'avampiede.',
+    'La racchetta passa da dietro-destra a avanti-sinistra, tagliando di lato con una pronazione dell\'avambraccio.',
+    'Chiudi davanti all\'anca sinistra e torna in posizione.',
+  ],
+  errors: ['Colpire troppo sopra la testa (diventa una bandeja)', 'Usare solo il polso', 'Non ruotare il busto'],
+  props: { mat: [1.0, 1.3, 0, -0.1] },
+  cam: { p: [-2.4, 1.6, 2.6], t: [0, 1.2, 0] },
+  keys: [
+    { t: 0, pose: NET },
+    { t: 0.08, pose: B_STEP_BACK, ease: 'sine' },
+    { t: 0.16, pose: B_TURN, ease: 'sine' },
+    { t: 0.36, pose: VB_PREP, ease: 'sine' },
+    { t: 0.43, pose: VB_PREP, ease: 'lin' },
+    { t: 0.47, pose: B_SWING(VB_PREP), ease: 'in' },
+    { t: 0.5, pose: VB_HIT, ease: 'lin' },
+    { t: 0.6, pose: VB_FOLLOW, ease: 'out' },
+    { t: 0.68, pose: VB_FOLLOW, ease: 'lin' },
+    { t: 0.84, pose: VB_STEP_FWD, ease: 'sine' },
+    { t: 1, pose: NET, ease: 'sine' },
   ],
 };
 
@@ -424,6 +682,7 @@ const SJ_TOUCH = P({ hips: { p: [0, 1.065, 0.02], r: [3, 0, 0] }, L: armsF(80, 2
 const SJ_LAND = P({ hips: { p: [0, 0.79, -0.1], r: [32, 0, 0] }, spine: [6, 0, 0], head: [-26, 0, 0], L: armsF(45, 30), R: armsF(45, 30), effort: 0.9 }, SJ_STAND);
 const SJ = {
   id: 'squat-jump',
+  section: 'Esplosività',
   name: 'Squat jump',
   short: 'Squat jump',
   sets: 3, reps: 5, unit: 'salti',
@@ -454,4 +713,4 @@ const SJ = {
   ],
 };
 
-export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, PALLOF, ROT, SJ];
+export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLLEY, BANDEJA, VIBORA, SJ];

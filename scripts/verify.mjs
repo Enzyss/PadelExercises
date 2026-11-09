@@ -55,6 +55,24 @@ const res = await page.evaluate(() => {
           clr('avambraccio-coscia', segDist(wp(s + 'ForeArm'), wp(s + 'Hand'), wp(o + 'UpLeg'), wp(o + 'Leg')) - 0.035 - 0.07);
           clr('avambraccio-coscia', segDist(wp(s + 'ForeArm'), wp(s + 'Hand'), wp(s + 'UpLeg'), wp(s + 'Leg')) - 0.035 - 0.07);
         }
+        // racket: head must not pass through torso, head, legs or the floor
+        const rs = pose.props && pose.props.racket;
+        if (rs) {
+          const r = rig.racketFrame(rs);
+          const h0 = r.grip.clone().addScaledVector(r.dir, 0.16), h1 = r.grip.clone().addScaledVector(r.dir, 0.42);
+          clr('racchetta-busto', segDist(h0, h1, torsoA, torsoB) - 0.115 - 0.03);
+          clr('racchetta-testa', segDist(h0, h1, wp('Head'), wp('Head').add(new THREE_V(0, 0.12, 0))) - 0.1 - 0.03);
+          for (const s of ['Left', 'Right']) clr('racchetta-coscia', segDist(h0, h1, wp(s + 'UpLeg'), wp(s + 'Leg')) - 0.08 - 0.03);
+          clr('racchetta-pavimento', Math.min(h0.y, h1.y) - 0.1);
+        }
+        // joint ranges of forearm and wrist
+        for (const s of ['L', 'R']) {
+          const a = pose[s];
+          r.wrist = r.wrist || [0, 0, 0, 0, 0, 0];
+          r.wrist[0] = Math.min(r.wrist[0], a.pron || 0); r.wrist[1] = Math.max(r.wrist[1], a.pron || 0);
+          r.wrist[2] = Math.min(r.wrist[2], a.wflex || 0); r.wrist[3] = Math.max(r.wrist[3], a.wflex || 0);
+          r.wrist[4] = Math.min(r.wrist[4], a.wdev || 0); r.wrist[5] = Math.max(r.wrist[5], a.wdev || 0);
+        }
         clr('coscia-coscia', segDist(wp('LeftUpLeg').lerp(wp('LeftLeg'), 0.25), wp('LeftLeg'), wp('RightUpLeg').lerp(wp('RightLeg'), 0.25), wp('RightLeg')) - 0.13);
         clr('tibia-tibia', segDist(wp('LeftLeg'), wp('LeftFoot'), wp('RightLeg'), wp('RightFoot')) - 0.09);
         clr('ginocchio-pavimento', Math.min(wp('LeftLeg').y, wp('RightLeg').y) - 0.05);
@@ -76,6 +94,10 @@ for (const r of res) {
   if (r.knee[0] < 0 || r.knee[1] > 150) issues.push(`ginocchio fuori range ${r.knee}`);
   if (r.elbow[0] < 0 || r.elbow[1] > 150) issues.push(`gomito fuori range ${r.elbow}`);
   for (const [k, d] of Object.entries(r.clear)) if (d < -0.015) issues.push(`compenetrazione ${k} ${d}`);
+  const w = r.wrist || [0, 0, 0, 0, 0, 0];
+  if (w[0] < -90 || w[1] > 90) issues.push(`prono-supinazione fuori range ${w[0]}..${w[1]}`);
+  if (w[2] < -65 || w[3] > 60) issues.push(`flesso-estensione polso fuori range ${w[2]}..${w[3]}`);
+  if (w[4] < -30 || w[5] > 30) issues.push(`deviazione polso fuori range ${w[4]}..${w[5]}`);
   if (issues.length) bad++;
   console.log((issues.length ? 'KO ' : 'OK ') + r.name.padEnd(22), `minY ${r.minY} ginocchio ${r.knee} gomito ${r.elbow}`, issues.length ? '\n    -> ' + issues.join('\n    -> ') : '', '\n    clearances', JSON.stringify(r.clear));
 }

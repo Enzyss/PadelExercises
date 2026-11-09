@@ -11,7 +11,7 @@ await page.goto('http://localhost:8123/index.html');
 await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
 let i = 0;
 for (const s of shots) {
-  const info = await page.evaluate((s) => { const r = window.show(s.ex, s.t, s.side || 0, s.cam); return JSON.stringify({ legs: Object.fromEntries(Object.entries(r.legs).map(([k,v]) => [k, {flex: v.flex.toFixed(0), re: v.reachError.toFixed(3)}])), arms: r.arms }); }, s);
+  const info = await page.evaluate((s) => { const r = window.show(s.ex, s.t, s.side || 0, s.cam); const f = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, typeof v === 'number' ? Math.round(v) : v])); return JSON.stringify({ legs: Object.fromEntries(Object.entries(r.legs).map(([k,v]) => [k, {flex: Math.round(v.flex), re: +v.reachError.toFixed(3)}])), arms: { L: f(r.arms.L), R: f(r.arms.R) } }); }, s);
   if (s.log) console.log(i, info);
   if (s.low) console.log(i, "low", await page.evaluate(() => JSON.stringify(window.lowByBone())));
   await page.locator('#v canvas').screenshot({ path: `${tmp}/s_${String(i).padStart(3,'0')}.png` });
