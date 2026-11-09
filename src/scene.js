@@ -158,7 +158,15 @@ export class Stage {
   }
 
   async loadModel(url) {
-    const gltf = await new GLTFLoader().loadAsync(url);
+    let gltf;
+    if (url.endsWith('.txt')) {
+      // base64-encoded .glb (for hosts that only serve text / web types)
+      const txt = await (await fetch(url)).text();
+      const bin = Uint8Array.from(atob(txt.trim()), (c) => c.charCodeAt(0));
+      gltf = await new GLTFLoader().parseAsync(bin.buffer, '');
+    } else {
+      gltf = await new GLTFLoader().loadAsync(url);
+    }
     const root = gltf.scene;
     this.model = root;
     root.updateMatrixWorld(true);

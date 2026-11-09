@@ -28,7 +28,7 @@ const state = {
 
 // ---------- stage ----------
 const stageEl = $('#stage-canvas');
-const stage = new Stage(stageEl, { modelUrl: 'Xbot.glb' });
+const stage = new Stage(stageEl, { modelUrl: window.MODEL_URL || 'Xbot.glb' });
 window.addEventListener('resize', () => stage.resize());
 new ResizeObserver(() => stage.resize()).observe(stageEl);
 
