@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Padel Pre-Partita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Routine pre-partita per il padel: 10 esercizi animati in 3D con i muscoli coinvolti, serie, ripetizioni e routine guidata.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: 3D stage as the hero (left on desktop, top on phones), exercise sheet beside it, routine list below.
+   Deliberately single dark theme: a padel court at night, court-blue accent, muscle colours as signal. */
+:root {
+  --bg: #0a1019;
+  --panel: #101925;
+  --panel-2: #152131;
+  --line: #22324a;
+  --fg: #e9eff8;
+  --muted: #93a3ba;
+  --accent: #4a8cff;
+  --accent-ink: #06101f;
+  --prim: #ff5233;
+  --sec: #ffc23a;
+  --f-display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+  --f-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r: 12px;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; margin: 0; }
+
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; flex-direction: column; min-width: 0; }
+.logo { font-family: var(--f-display); font-weight: 700; font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+.logo b { color: var(--accent); font-weight: 700; }
+#total { color: var(--muted); font-size: 13px; }
+.cta {
+  flex: none;
+  background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 999px;
+  padding: 10px 18px; font-weight: 600; font-size: 15px;
+}
+.in-routine .cta { background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); }
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.stage { background: radial-gradient(120% 90% at 50% 30%, #142238 0%, var(--bg) 70%); }
+.view { position: relative; }
+#stage-canvas { position: relative; height: min(66svh, 640px); min-height: 380px; touch-action: none; }
+#stage-canvas canvas { display: block; width: 100%; height: 100%; }
+.loading {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--muted); font-size: 14px; pointer-events: none;
+}
+.ready .loading { display: none; }
+
+.ov { position: absolute; pointer-events: none; }
+.ov > * { pointer-events: auto; }
+.ov-tl { top: 14px; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); }
+.exnum { font-family: var(--f-display); font-size: 14px; letter-spacing: 0.12em; color: var(--muted); font-variant-numeric: tabular-nums; }
+#ex-name { font-size: clamp(24px, 4.2vw, 36px); line-height: 1.05; max-width: 16ch; text-shadow: 0 2px 16px rgba(0,0,0,.5); }
+.ov-bl { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 14px; }
+.dose { display: flex; align-items: baseline; gap: 8px; font-family: var(--f-display); text-shadow: 0 2px 18px rgba(0,0,0,.6); }
+#dose-big { font-size: clamp(44px, 7vw, 64px); font-weight: 700; line-height: 0.9; font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+#dose-unit { font-size: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+.bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.ib {
+  width: 42px; height: 42px; display: grid; place-items: center; flex: none;
+  border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line);
+}
+.ib svg { width: 18px; height: 18px; fill: currentColor; }
+#play { width: 50px; height: 50px; background: var(--fg); color: var(--bg); border: 0; }
+#play .i-pause { display: none; }
+#play[data-state="playing"] .i-pause { display: block; }
+#play[data-state="playing"] .i-play { display: none; }
+.pill {
+  height: 36px; padding: 0 12px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.pill[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
+.side { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+.side[hidden] { display: none; }
+
+/* routine overlay */
+.routine {
+  position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 14px;
+  width: min(250px, calc(100% - 32px));
+  background: rgba(13, 21, 33, 0.9); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 12px 14px 14px; backdrop-filter: blur(8px);
+  display: grid; gap: 4px;
+}
+.routine[data-mode="rest"], .routine[data-mode="switch"] { border-color: var(--sec); }
+.r-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.r-num { display: flex; align-items: baseline; gap: 6px; font-family: var(--f-display); }
+#r-count { font-size: 54px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+#r-of { font-size: 20px; color: var(--muted); }
+#r-label { font-size: 14px; }
+.routine[data-mode="rest"] #r-count, .routine[data-mode="switch"] #r-count { color: var(--sec); }
+.r-track { height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; margin-top: 6px; }
+#r-bar { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+.r-actions { display: flex; gap: 8px; margin-top: 6px; }
+.r-actions button { flex: 1; height: 34px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; }
+#stop { flex: none; padding: 0 10px; color: var(--muted); }
+.in-routine .ov-bl { display: none; }
+
+/* sheet */
+.sheet, .plan {
+  padding-block: 20px 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 18px; align-content: start; min-width: 0;
+}
+.sheet h2, .plan h2 { font-size: 15px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.block { display: grid; gap: 8px; }
+.mrow { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: start; }
+.mrow[hidden] { display: none; }
+.lab { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); padding-top: 4px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.dot.p { background: var(--prim); box-shadow: 0 0 10px var(--prim); }
+.dot.s { background: var(--sec); box-shadow: 0 0 10px var(--sec); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+.chip.p { border-color: color-mix(in srgb, var(--prim) 60%, transparent); color: #ffd2c8; background: color-mix(in srgb, var(--prim) 14%, transparent); }
+.chip.s { border-color: color-mix(in srgb, var(--sec) 55%, transparent); color: #ffeab8; background: color-mix(in srgb, var(--sec) 10%, transparent); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 0; }
+.facts div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; min-width: 0; }
+.facts dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.facts dd { margin: 2px 0 0; font-weight: 500; }
+.cues { margin: 0; padding: 0; list-style: none; counter-reset: c; display: grid; gap: 10px; max-width: 62ch; }
+.cues li { counter-increment: c; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.cues li::before {
+  content: counter(c); font-family: var(--f-display); font-weight: 700; font-size: 15px;
+  width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--accent);
+}
+.errors { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; max-width: 62ch; }
+.errors li { display: flex; gap: 10px; }
+.errors li::before { content: ""; width: 12px; height: 2px; background: var(--prim); margin-top: 11px; flex: none; }
+#why { margin: 0; max-width: 62ch; color: #cfd9e8; }
+
+/* routine list */
+.plan { padding-bottom: 28px; }
+.list { display: grid; gap: 6px; }
+.item {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  text-align: left; padding: 10px 12px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line);
+}
+.item .num { font-family: var(--f-display); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item .nm { min-width: 0; }
+.item .dose { font-family: var(--f-display); font-size: 17px; color: var(--muted); font-variant-numeric: tabular-nums; text-shadow: none; }
+.item[aria-current="true"] { border-color: var(--accent); background: var(--panel-2); }
+.item[aria-current="true"] .num { color: var(--accent); }
+.note { font-size: 13px; color: var(--muted); margin: 4px 0 0; max-width: 62ch; }
+
+@media (min-width: 900px) {
+  .app {
+    grid-template-columns: minmax(0, 1.45fr) minmax(340px, 1fr);
+    grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
+    flex: 1; min-height: 0;
+  }
+  body { display: flex; flex-direction: column; }
+  .stage { grid-column: 1; grid-row: 1 / span 2; display: flex; flex-direction: column; min-height: 0; }
+  .view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  #stage-canvas { flex: 1; height: auto; min-height: 0; }
+  .sheet { grid-column: 2; grid-row: 1; overflow: auto; border-left: 1px solid var(--line); }
+  .plan { grid-column: 2; grid-row: 2; overflow: auto; border-left: 1px solid var(--line); border-top: 1px solid var(--line); padding-top: 16px; }
+  .app { overflow: hidden; }
+}
+@media (min-width: 900px) and (max-height: 760px) {
+  body { display: block; }
+  .app { overflow: visible; }
+  .stage { height: 640px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #r-bar { transition: none; }
+}
+</style>
+
+<header class="top">
+  <div class="brand">
+    <span class="logo">Padel <b>Pre-Partita</b></span>
+    <span id="total"></span>
+  </div>
+  <button id="start" class="cta" type="button">Inizia routine</button>
+</header>
+
+<main class="app">
+  <section id="stage" class="stage" aria-label="Animazione dell'esercizio">
+    <div class="view">
+      <div id="stage-canvas">
+        <div id="loading" class="loading">Carico il manichino 3D…</div>
+      </div>
+      <div class="ov ov-tl">
+        <div id="ex-num" class="exnum"></div>
+        <h1 id="ex-name"></h1>
+      </div>
+      <div class="ov ov-bl"><div class="dose"><span id="dose-big"></span><span id="dose-unit"></span></div></div>
+      <div id="routine" class="routine" hidden aria-live="polite">
+        <div class="r-head"><span id="r-set"></span></div>
+        <div class="r-num"><span id="r-count">0</span><span id="r-of"></span></div>
+        <div id="r-label"></div>
+        <div class="r-track"><div id="r-bar"></div></div>
+        <div class="r-actions">
+          <button id="skip" type="button" hidden>Salta recupero</button>
+          <button id="stop" type="button">Esci</button>
+        </div>
+      </div>
+    </div>
+    <div class="bar">
+      <button id="prev" class="ib" type="button" aria-label="Esercizio precedente"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button id="play" class="ib" type="button" aria-label="Pausa" data-state="playing"><svg class="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg><svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg></button>
+      <button id="next" class="ib" type="button" aria-label="Esercizio successivo"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <button id="speed" class="pill" type="button" aria-pressed="false" aria-label="Velocità">1×</button>
+      <button id="view" class="pill" type="button" aria-label="Cambia inquadratura">Vista: consigliata</button>
+      <div id="side" class="side" role="group" aria-label="Lato" hidden>
+        <button class="pill" type="button" aria-pressed="true">Lato A</button>
+        <button class="pill" type="button" aria-pressed="false">Lato B</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Scheda dell'esercizio">
+    <div class="block">
+      <h2>Muscoli</h2>
+      <div class="mrow"><span class="lab"><i class="dot p"></i>Principali</span><div id="prim" class="chips"></div></div>
+      <div id="sec-row" class="mrow"><span class="lab"><i class="dot s"></i>Secondari</span><div id="sec" class="chips"></div></div>
+    </div>
+    <dl class="facts">
+      <div><dt>Ritmo</dt><dd id="tempo"></dd></div>
+      <div><dt>Attrezzatura</dt><dd id="equip"></dd></div>
+    </dl>
+    <div class="block"><h2>Come si fa</h2><ol id="cues" class="cues"></ol></div>
+    <div class="block"><h2>Errori da evitare</h2><ul id="errors" class="errors"></ul></div>
+    <div class="block"><h2>Perché nel padel</h2><p id="why"></p></div>
+  </section>
+
+  <section class="plan" aria-label="Routine completa">
+    <h2>La routine, in ordine</h2>
+    <div id="list" class="list"></div>
+    <p class="note">Dalla mobilità all'attivazione, fino alla potenza. Fai la routine 20–30 minuti prima di giocare. Se senti dolore acuto fermati; se hai un infortunio fatti seguire da un fisioterapista.</p>
+  </section>
+</main>
+<script src="app.js"></script>
+
+</html>

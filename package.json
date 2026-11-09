@@ -1,0 +1,28 @@
+{
+  "name": "padel-pre-partita",
+  "version": "1.0.0",
+  "description": "Routine pre-partita per il padel con esercizi animati in 3D",
+  "scripts": {
+    "build": "node build.mjs",
+    "serve": "node scripts/serve.mjs 8124 dist",
+    "verify": "node scripts/verify.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Enzyss/PadelExercises.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Enzyss/PadelExercises/issues"
+  },
+  "homepage": "https://github.com/Enzyss/PadelExercises#readme",
+  "dependencies": {
+    "three": "^0.160.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2"
+  },
+  "private": true
+}
