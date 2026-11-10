@@ -6,6 +6,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { Rig } from './rig.js';
+import { Court } from './court.js';
 import { computeMuscleWeights } from './muscles.js';
 
 const V3 = THREE.Vector3;
@@ -83,6 +84,8 @@ export class Stage {
     this.buildLights();
     this.buildFloor();
     this.buildProps();
+    this.court = new Court(this.scene);
+    this.courtOn = false;
 
     if (bloom) {
       this.composer = new EffectComposer(r);
@@ -124,12 +127,14 @@ export class Stage {
     floor.position.y = -0.008;
     floor.receiveShadow = true;
     this.scene.add(floor);
+    this.homeFloor = [floor];
     // court-blue lines on the floor (padel court markings vibe)
     const lineMat = new THREE.MeshBasicMaterial({ color: 0x2a4f86, transparent: true, opacity: 0.55 });
     for (const z of [-2.4, 2.4]) {
       const l = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.05), lineMat);
       l.rotation.x = -Math.PI / 2; l.position.set(0, -0.007, z);
       this.scene.add(l);
+      this.homeFloor.push(l);
     }
     const mid = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 4.8), lineMat);
     mid.rotation.x = -Math.PI / 2; mid.position.set(0, -0.007, 0);
@@ -144,6 +149,19 @@ export class Stage {
     mat.receiveShadow = true;
     this.mat = mat;
     this.scene.add(mat);
+  }
+
+  // court mode: full padel court with the ball instead of the home floor
+  setCourt(on) {
+    this.courtOn = on;
+    this.court.setVisible(on);
+    for (const o of this.homeFloor) o.visible = !on;
+    this.mat.visible = !on;
+    this.scene.fog.near = on ? 30 : 6;
+    this.scene.fog.far = on ? 70 : 14;
+    this.controls.maxDistance = on ? 34 : 8;
+    this.camera.fov = on ? 46 : 32;
+    this.camera.updateProjectionMatrix();
   }
 
   setMat(w, d, x = 0, z = 0) {

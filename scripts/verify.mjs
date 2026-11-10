@@ -59,11 +59,20 @@ const res = await page.evaluate(() => {
         const rs = pose.props && pose.props.racket;
         if (rs) {
           const r = rig.racketFrame(rs);
-          const h0 = r.grip.clone().addScaledVector(r.dir, 0.16), h1 = r.grip.clone().addScaledVector(r.dir, 0.42);
-          clr('racchetta-busto', segDist(h0, h1, torsoA, torsoB) - 0.115 - 0.03);
-          clr('racchetta-testa', segDist(h0, h1, wp('Head'), wp('Head').add(new THREE_V(0, 0.12, 0))) - 0.1 - 0.03);
-          for (const s of ['Left', 'Right']) clr('racchetta-coscia', segDist(h0, h1, wp(s + 'UpLeg'), wp(s + 'Leg')) - 0.08 - 0.03);
-          clr('racchetta-pavimento', Math.min(h0.y, h1.y) - 0.1);
+          // whole head of the racket: rim (26 x 28 cm) plus its long axis
+          const wx = new THREE_V().crossVectors(r.dir, r.face).normalize();
+          const at = (x, y) => r.grip.clone().addScaledVector(r.dir, y).addScaledVector(wx, x);
+          const segs = [[at(0, 0.16), at(0, 0.42)]];
+          for (let k = 0; k < 16; k++) { const a0 = k / 16 * Math.PI * 2, a1 = (k + 1) / 16 * Math.PI * 2; segs.push([at(0.13 * Math.cos(a0), 0.29 + 0.14 * Math.sin(a0)), at(0.13 * Math.cos(a1), 0.29 + 0.14 * Math.sin(a1))]); }
+          const other = rs === 'L' ? 'Right' : 'Left';
+          const freeArm = !(pose[rs === 'L' ? 'R' : 'L'] && pose[rs === 'L' ? 'R' : 'L'].attachW > 0.05);
+          for (const [h0, h1] of segs) {
+            clr('racchetta-busto', segDist(h0, h1, torsoA, torsoB) - 0.115 - 0.02);
+            clr('racchetta-testa', segDist(h0, h1, wp('Head'), wp('Head').add(new THREE_V(0, 0.12, 0))) - 0.1 - 0.02);
+            for (const s of ['Left', 'Right']) clr('racchetta-coscia', segDist(h0, h1, wp(s + 'UpLeg'), wp(s + 'Leg')) - 0.08 - 0.02);
+            if (freeArm) clr('racchetta-braccio', segDist(h0, h1, wp(other + 'ForeArm'), wp(other + 'Hand')) - 0.035 - 0.02);
+            clr('racchetta-pavimento', Math.min(h0.y, h1.y) - 0.02);
+          }
         }
         // joint ranges of forearm and wrist
         for (const s of ['L', 'R']) {

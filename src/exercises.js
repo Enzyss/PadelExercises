@@ -484,7 +484,9 @@ const B_FOLLOW = P({
 }, B_HIT);
 // il piede destro torna in avanti nella posizione di attesa
 const B_STEP_FWD = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_FOLLOW, B_READY, 0.5));
-const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_READY, B_TURN, 0.5));
+// racket kept a hand's width in front of the face while the shoulders turn
+const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false },
+  R: fk({ flex: 22, abd: 24, hflex: 22, rot: 5, elbow: 95, pron: -10, wdev: -8, scap: [2, 0] }) }, lerpPose(B_READY, B_TURN, 0.5));
 
 const BANDEJA = {
   id: 'bandeja',
@@ -492,7 +494,7 @@ const BANDEJA = {
   short: 'Bandeja',
   section: 'Colpi a vuoto',
   sets: 2, reps: 6, unit: 'rip',
-  tempo: 'girata · preparazione alta · impatto davanti · accompagna verso sinistra',
+  tempo: 'girata · preparazione alta · impatto davanti · accompagna verso l\'altro campo',
   dur: 4.2,
   sided: true,
   sideLabels: ['Destrorso', 'Mancino'],
@@ -500,15 +502,45 @@ const BANDEJA = {
   equip: 'La tua racchetta, senza palla',
   prim: ['deltAnt', 'cuffia'],
   sec: ['obliqui', 'tricipiti', 'estensori'],
-  why: 'La bandeja ("vassoio") serve a riconquistare la rete quando l\'avversario ti alza un pallonetto. Ripeterla a vuoto fissa la sequenza giusta e scalda la spalla nella posizione che userai in partita.',
+  why: 'La bandeja ("vassoio") si gioca sui pallonetti che non ti scavalcano e che non riesci a schiacciare. Serve a difendere la rete: tieni gli avversari dietro e rientri a rete il prima possibile. Ripeterla a vuoto fissa la sequenza giusta e scalda la spalla nella posizione che userai in partita.',
   cues: [
-    'Attesa: racchetta davanti al petto, testa in alto, mano sinistra sul cuore della racchetta.',
-    'Girata: porti la racchetta su a destra con tutte e due le mani e ti metti di profilo, piede destro indietro.',
-    'Preparazione: gomito all\'altezza della spalla, racchetta su sopra la spalla destra, braccio sinistro alto che indica la palla.',
-    'Impatto davanti e sopra la spalla destra, braccio quasi disteso, faccia leggermente aperta (taglio).',
-    'Accompagna in avanti e verso sinistra, la racchetta resta "a vassoio". Poi torna in attesa con due mani.',
+    'Attesa a 2-3 metri dalla rete: racchetta all\'altezza della testa, mano sinistra sul cuore, gambe poco più larghe delle spalle.',
+    'Appena vedi il pallonetto: gamba destra indietro e racchetta su con tutte e due le mani, ti metti di profilo. Piccoli passi per fermarti comodo.',
+    'Preparazione: gomito all\'altezza della spalla, punta della racchetta in alto, mano sinistra in avanti che indica la palla.',
+    'Impatto all\'altezza degli occhi, davanti, con il braccio disteso. Sotto la palla ma un po\' alla sua sinistra, mai esattamente sotto.',
+    'Dopo l\'impatto la racchetta va avanti verso l\'altro campo e il piatto gira leggermente verso l\'alto, come un vassoio (taglio). Poi passi veloci in avanti: torna a rete.',
   ],
-  errors: ['Restare frontali alla rete', 'Colpire dietro la testa', 'Chiudere verso il basso come uno smash', 'Braccio sinistro che non indica la palla'],
+  errors: [
+    'Andare sotto la palla come per lo smash: resta a una distanza di braccio + racchetta, un po\' a sinistra.',
+    'Colpire troppo in alto per fretta: dopo il vetro la palla rimbalza alta e comoda.',
+    'Gomito basso in preparazione: colpisci dal basso verso l\'alto e la palla sale dopo il vetro.',
+    'Preparare con il piatto rivolto verso l\'alto (mano troppo aperta): colpisci la palla da sotto.',
+  ],
+  tactics: [
+    'Profondità: mandala tra la linea di servizio e il vetro di fondo, così gli avversari restano dietro e non contrattaccano.',
+    'Direzione: soprattutto in diagonale, verso l\'angolo. Punta prima il vetro di fondo: poi la palla va sul vetro laterale e l\'avversario deve giocare la doppia parete, chiuso nell\'angolo.',
+    'Se tocca prima il vetro laterale, dopo il vetro di fondo esce verso il centro: palla comoda, che possono giocare tutti e due gli avversari.',
+    'Lungolinea solo per la bandeja d\'attacco, quando vuoi togliere tempo all\'avversario.',
+    'Se la palla ti sta scavalcando e non riesci a piazzarti, giocala piatta verso la griglia: il rimbalzo irregolare dà fastidio.',
+    'Più sei lontano dalla rete, più è difesa: impatto un po\' più alto e meno effetto. Più sei vicino, più è attacco: impatto più basso e più taglio.',
+    'Si gioca da tutti e due i lati del campo. Dopo il colpo, passi veloci in avanti per riprendere la rete.',
+  ],
+  // ball on a court: impact at phase `hit`; world metres, player at the origin facing the net (+Z)
+  court: {
+    hit: 0.53,
+    net: 4,
+    lob: { from: [5.0, 1.0, 12.2], start: 0.08 },
+    shots: [
+      { id: 'diag', label: 'Diagonale', color: '#3ddc84', land: [5.4, 12.6], time: 0.74, glassUp: 0.3,
+        text: 'La scelta principale: diagonale e profonda. Rimbalza tra la linea e il vetro, tocca prima il vetro di fondo e poi il laterale: l\'avversario deve giocare la doppia parete chiuso nell\'angolo.' },
+      { id: 'line', label: 'Lungolinea (attacco)', color: '#4a8cff', land: [-1.4, 12.7], time: 0.64, glassUp: 0.3,
+        text: 'Bandeja d\'attacco, quando sei vicino alla rete: lungolinea e veloce per togliere tempo all\'avversario.' },
+      { id: 'grid', label: 'Piatta alla griglia', color: '#ffc23a', land: [6.9, 8.4], time: 0.6, glassUp: 0.3, flat: true,
+        text: 'Quando la palla ti sta scavalcando e non riesci a piazzarti: piatta verso la griglia. Il rimbalzo sulla rete metallica è irregolare e dà fastidio.' },
+      { id: 'side', label: 'Errore: vetro laterale', color: '#ff5233', land: [6.75, 10.5], time: 0.74, glassUp: 0.9, error: true,
+        text: 'Da evitare: se tocca prima il vetro laterale, dopo il vetro di fondo esce verso il centro, alta e comoda. Diventa un contrattacco per gli avversari.' },
+    ],
+  },
   props: { mat: [1.0, 1.3, 0, -0.1] },
   cam: { p: [0.4, 1.5, 3.4], t: [0, 1.25, 0] }, // come nel video: dalla rete, davanti al giocatore
   keys: [

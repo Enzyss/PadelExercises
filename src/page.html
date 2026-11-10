@@ -107,6 +107,21 @@ h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; ma
 .pill[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
 .side { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
 .side[hidden] { display: none; }
+#court[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+/* court mode: where the ball goes */
+.shots {
+  display: grid; gap: 8px;
+  padding-block: 10px 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.shot-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.shot { display: inline-flex; align-items: center; gap: 7px; }
+.shot[aria-pressed="true"] { color: var(--fg); border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--panel-2)); }
+.sdot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: none; }
+#shot-text { margin: 0; font-size: 14px; color: #cfd9e8; max-width: 70ch; }
+.errors.tactics li::before { background: var(--accent); }
 
 /* routine overlay */
 .routine {
@@ -242,10 +257,15 @@ h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; ma
       <button id="next" class="ib" type="button" aria-label="Esercizio successivo"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
       <button id="speed" class="pill" type="button" aria-pressed="false" aria-label="Velocità">1×</button>
       <button id="view" class="pill" type="button" aria-label="Cambia inquadratura">Vista: consigliata</button>
+      <button id="court" class="pill" type="button" aria-pressed="false" hidden>Campo e palla</button>
       <div id="side" class="side" role="group" aria-label="Lato" hidden>
         <button class="pill" type="button" aria-pressed="true">Lato A</button>
         <button class="pill" type="button" aria-pressed="false">Lato B</button>
       </div>
+    </div>
+    <div id="shots" class="shots" hidden>
+      <div id="shot-pills" class="shot-pills" role="group" aria-label="Dove mandarla"></div>
+      <p id="shot-text"></p>
     </div>
   </section>
 
@@ -260,6 +280,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; ma
       <div><dt>Attrezzatura</dt><dd id="equip"></dd></div>
     </dl>
     <div class="block"><h2>Come si fa</h2><ol id="cues" class="cues"></ol></div>
+    <div id="tactics-block" class="block" hidden><h2>Dove mandarla</h2><ul id="tactics" class="errors tactics"></ul></div>
     <div class="block"><h2>Errori da evitare</h2><ul id="errors" class="errors"></ul></div>
     <div class="block"><h2>Perché nel padel</h2><p id="why"></p></div>
   </section>

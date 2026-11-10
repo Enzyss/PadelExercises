@@ -2,6 +2,7 @@ import { Stage } from './scene.js';
 import { EXERCISES, samplePose } from './exercises.js';
 import { MUSCLES } from './muscles.js';
 import { applyProps } from './props.js';
+import { impactPoint } from './court.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => {
@@ -23,6 +24,8 @@ const state = {
   speed: 1,
   phase: 0, // animation phase in reps
   view: 'auto',
+  court: false, // ball on a padel court (strokes only)
+  shot: null,
   // routine
   routine: null, // { set, rep, side, mode: 'work'|'rest'|'switch'|'done', left }
 };
@@ -63,7 +66,19 @@ const totalSec = EXERCISES.reduce((acc, ex) => {
 $('#total').textContent = `${EXERCISES.length} esercizi · circa ${Math.round(totalSec / 60)} min`;
 
 // ---------- selection ----------
+const COURT_CAMS = {
+  auto: { p: [0.4, 5.4, -7.2], t: [2.7, 0.0, 8.6] },
+  front: { p: [2.5, 25, 3.6], t: [2.5, 0, 4.2] },
+  side: { p: [-11.5, 5.5, 5.0], t: [2.5, 1.0, 5.5] },
+  back: { p: [1.4, 3.4, 13.4], t: [0.4, 1.3, 1.2] },
+};
+const courtActive = () => state.court && !!EXERCISES[state.idx].court;
 function camFor(ex) {
+  if (state.court && ex.court) {
+    const c = structuredClone(COURT_CAMS[state.view]);
+    if (state.side === 1) { c.p[0] = -c.p[0]; c.t[0] = -c.t[0]; }
+    return c;
+  }
   const c = structuredClone(ex.cam);
   if (state.side === 1 && ex.sided) { c.p[0] = -c.p[0]; c.t[0] = -c.t[0]; }
   if (state.view === 'auto') return c;
@@ -100,6 +115,9 @@ function select(i, { keepCam = false, keepSide = false } = {}) {
   $('#prim').replaceChildren(...chips(ex.prim, 'p'));
   $('#sec').replaceChildren(...chips(ex.sec, 's'));
   $('#sec-row').hidden = ex.sec.length === 0;
+  $('#tactics-block').hidden = !ex.tactics;
+  if (ex.tactics) $('#tactics').replaceChildren(...ex.tactics.map((c) => el('li', null, c)));
+  $('#court').hidden = !ex.court;
   const sideBox = $('#side');
   sideBox.hidden = !ex.sided;
   if (ex.sided) {
@@ -110,6 +128,7 @@ function select(i, { keepCam = false, keepSide = false } = {}) {
     });
   }
   if (stage.rig) stage.setMuscles(ex.prim, ex.sec, sideMuscles(ex));
+  refreshCourt();
   if (!keepCam) stage.frame(camFor(ex).p, camFor(ex).t, !stage.rig);
   try { history.replaceState(null, '', '#' + ex.id); } catch (e) { /* ignore */ }
   updateRoutineUI();
@@ -121,6 +140,7 @@ function setSide(s) {
   const ex = EXERCISES[state.idx];
   $('#side').querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-pressed', k === s ? 'true' : 'false'));
   stage.setMuscles(ex.prim, ex.sec, sideMuscles(ex));
+  refreshCourt();
   stage.frame(camFor(ex).p, camFor(ex).t);
 }
 $('#side').querySelectorAll('button').forEach((b, k) => b.addEventListener('click', () => setSide(k)));
@@ -140,11 +160,45 @@ $('#speed').addEventListener('click', (e) => {
   e.currentTarget.textContent = state.speed === 1 ? '1×' : '0,5×';
   e.currentTarget.setAttribute('aria-pressed', state.speed !== 1 ? 'true' : 'false');
 });
-const VIEWS = [['auto', 'consigliata'], ['front', 'fronte'], ['side', 'lato'], ['back', 'dietro']];
+const VIEWS = [['auto', 'consigliata', 'consigliata'], ['front', 'fronte', 'dall\'alto'], ['side', 'lato', 'di lato'], ['back', 'dietro', 'dall\'altro campo']];
+const viewLabel = () => 'Vista: ' + VIEWS.find((v) => v[0] === state.view)[courtActive() ? 2 : 1];
 $('#view').addEventListener('click', (e) => {
   const k = (VIEWS.findIndex((v) => v[0] === state.view) + 1) % VIEWS.length;
   state.view = VIEWS[k][0];
-  e.currentTarget.textContent = 'Vista: ' + VIEWS[k][1];
+  e.currentTarget.textContent = viewLabel();
+  const c = camFor(EXERCISES[state.idx]);
+  stage.frame(c.p, c.t);
+});
+
+// ---------- court: where the ball goes ----------
+function refreshCourt() {
+  const ex = EXERCISES[state.idx];
+  const on = courtActive();
+  $('#court').setAttribute('aria-pressed', on ? 'true' : 'false');
+  $('#shots').hidden = !on;
+  $('#view').textContent = viewLabel();
+  if (!stage.rig) return;
+  stage.setCourt(on);
+  if (!on) return;
+  if (!ex.court.shots.some((s) => s.id === state.shot)) state.shot = ex.court.shots[0].id;
+  const shot = ex.court.shots.find((s) => s.id === state.shot);
+  const box = $('#shot-pills');
+  box.replaceChildren(...ex.court.shots.map((s) => {
+    const b = el('button', 'pill shot');
+    b.type = 'button';
+    b.style.setProperty('--c', s.color);
+    b.append(el('i', 'sdot'), s.label);
+    b.setAttribute('aria-pressed', s.id === state.shot ? 'true' : 'false');
+    b.addEventListener('click', () => { state.shot = s.id; refreshCourt(); });
+    return b;
+  }));
+  $('#shot-text').textContent = shot.text;
+  stage.court.configure(ex.court, impactPoint(stage.rig, samplePose(ex, ex.court.hit, state.side)), state.side, state.shot, ex.dur);
+}
+$('#court').addEventListener('click', () => {
+  state.court = !state.court;
+  state.view = 'auto';
+  refreshCourt();
   const c = camFor(EXERCISES[state.idx]);
   stage.frame(c.p, c.t);
 });
@@ -277,6 +331,7 @@ function tick(now) {
     const pose = samplePose(ex, state.phase, ex.sided ? state.side : 0);
     stage.rig.apply(pose);
     applyProps(stage, ex, pose);
+    if (stage.courtOn) stage.court.update(state.phase, stage.camera.aspect);
     const pulse = 0.5 + 0.5 * Math.sin(now / 260);
     stage.setEffort(Math.min(1, (pose.effort || 0) * (0.85 + 0.15 * pulse)));
   }
@@ -288,6 +343,7 @@ stage.ready.then(() => {
   document.body.classList.add('ready');
   const ex = EXERCISES[state.idx];
   stage.setMuscles(ex.prim, ex.sec, sideMuscles(ex));
+  refreshCourt();
   const c = camFor(ex);
   stage.frame(c.p, c.t, true);
 }).catch((err) => {
@@ -305,4 +361,4 @@ window.addEventListener('hashchange', () => {
 });
 
 // test hook
-window.__app = { state, stage, EXERCISES, select, setSide, samplePose, applyProps };
+window.__app = { state, stage, EXERCISES, select, setSide, samplePose, applyProps, refreshCourt };

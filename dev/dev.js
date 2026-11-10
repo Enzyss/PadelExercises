@@ -1,6 +1,7 @@
 import { Stage } from '../src/scene.js';
 import { EXERCISES, samplePose } from '../src/exercises.js';
 import { applyProps } from '../src/props.js';
+import { impactPoint } from '../src/court.js';
 import * as THREE from 'three';
 const stage = new Stage(document.getElementById('v'), { modelUrl: 'Xbot.glb', bloom: true, pixelRatio: 1 });
 window.stage = stage;
@@ -259,3 +260,100 @@ window.fitArmNear = (exId, t, target, side = 0) => {
   return Object.entries(p).map(([k, v]) => `${k}: ${Math.round(v)}`).join(', ') + ` // pos ${(r.pe * 100).toFixed(1)}cm dir ${(Math.acos(1 - r.de) * 57.3).toFixed(0)}° face ${(Math.acos(Math.max(-1, 1 - r.fe)) * 57.3).toFixed(0)}°`;
 };
 const RANGES0 = { flex: 0, abd: 0, hflex: 0, rot: 0, elbow: 90, pron: 0, wflex: 0, wdev: 0 };
+// full racket-head sweep: rim + face points against body capsules (positive = gap)
+window.racketSweep = (exId, side = 0, N = 120) => {
+  const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const out = [];
+  const wp = (n) => rig.b[n].getWorldPosition(new V());
+  const segD = (p, a, b) => { const ab = b.clone().sub(a); const t = Math.max(0, Math.min(1, p.clone().sub(a).dot(ab) / ab.lengthSq())); return p.distanceTo(a.clone().addScaledVector(ab, t)); };
+  const local = []; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; local.push([0.13 * Math.cos(a), 0.29 + 0.14 * Math.sin(a)]); }
+  for (const y of [0.2, 0.29, 0.37]) for (const x of [-0.07, 0, 0.07]) local.push([x, y]);
+  local.push([0, 0.15], [0, 0.1]);
+  for (let f = 0; f < N; f++) {
+    const t = f / N; const pose = samplePose(e, t, side); rig.apply(pose);
+    const s = pose.props && pose.props.racket; if (!s) continue;
+    const r = rig.racketFrame(s); const wx = new V().crossVectors(r.dir, r.face).normalize();
+    const o = s === 'L' ? 'R' : 'L'; const S = { L: 'Left', R: 'Right' };
+    const caps = [['busto', wp('Hips'), wp('Spine2'), 0.12], ['petto', wp('Spine2'), wp('Neck'), 0.11], ['testa', wp('Head'), wp('Head').add(new V(0, 0.14, 0)), 0.1],
+      ['braccio-' + o, wp(S[o] + 'Arm'), wp(S[o] + 'ForeArm'), 0.045], ['coscia-L', wp('LeftUpLeg'), wp('LeftLeg'), 0.08], ['coscia-R', wp('RightUpLeg'), wp('RightLeg'), 0.08],
+      ['braccio-' + s, wp(S[s] + 'Arm').lerp(wp(S[s] + 'ForeArm'), 0.2), wp(S[s] + 'ForeArm'), 0.045], ['avamb-' + s, wp(S[s] + 'ForeArm'), wp(S[s] + 'ForeArm').lerp(wp(S[s] + 'Hand'), 0.6), 0.035]];
+    const attached = pose[o] && pose[o].attachW > 0.05;
+    if (!attached) caps.push(['avamb-' + o, wp(S[o] + 'ForeArm'), wp(S[o] + 'Hand'), 0.035], ['mano-' + o, wp(S[o] + 'Hand'), wp(S[o] + 'HandMiddle2'), 0.03]);
+    let worst = { d: 9 };
+    for (const [x, y] of local) { const p = r.grip.clone().addScaledVector(r.dir, y).addScaledVector(wx, x);
+      for (const [n, a, b, rad] of caps) { const d = segD(p, a, b) - rad - 0.02; if (d < worst.d) worst = { d, n, x, y }; } }
+    out.push(`${t.toFixed(3)} ${worst.d.toFixed(3)} ${worst.n} (${worst.x.toFixed(2)},${worst.y.toFixed(2)})${worst.d < 0 ? '  <<<' : ''}`);
+  }
+  return out.join('\n');
+};
+// racket head vs real skinned mesh vertices: counts vertices inside the head volume, by bone
+const penCount = (pose, pad = 0.01) => {
+  const rig = stage.rig; const V = THREE.Vector3; const v = new V();
+  rig.apply(pose); stage.model.updateMatrixWorld(true);
+  const s = pose.props && pose.props.racket; if (!s) return { n: 0, hits: {} };
+  const meshes = []; stage.model.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
+  const r = rig.racketFrame(s); const wx = new V().crossVectors(r.dir, r.face).normalize();
+  const o = s === 'L' ? 'Right' : 'Left'; const own = s === 'L' ? 'Left' : 'Right';
+  const attached = pose[s === 'L' ? 'R' : 'L'].attachW > 0.05;
+  const hits = {}; let n = 0;
+  for (const m of meshes) {
+    const sk = m.skeleton; const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    for (let i = 0; i < m.geometry.attributes.position.count; i++) {
+      let bi = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } }
+      const bn = sk.bones[bi].name.replace('mixamorig', '').replace(':', '');
+      if (bn.startsWith(own + 'Hand')) continue;
+      if (attached && bn.startsWith(o + 'Hand')) continue;
+      m.getVertexPosition(i, v); m.localToWorld(v);
+      const d = v.clone().sub(r.grip); const y = d.dot(r.dir), x = d.dot(wx), z = d.dot(r.face);
+      if (y < 0.12 || y > 0.44 || Math.abs(z) > 0.022 + pad) continue;
+      const ex = x / (0.13 + pad), ey = (y - 0.29) / (0.14 + pad);
+      if (ex * ex + ey * ey > 1 && !(y < 0.2 && Math.abs(x) < 0.05)) continue;
+      n++; hits[bn] = (hits[bn] || 0) + 1; (hits._y = hits._y || []).push([+x.toFixed(2), +y.toFixed(2), +z.toFixed(3)]);
+    }
+  }
+  return { n, hits };
+};
+const mergeOver = (pose, over) => { if (over) for (const k in over) pose[k] = typeof over[k] === 'object' && !Array.isArray(over[k]) ? { ...pose[k], ...over[k] } : over[k]; return pose; };
+window.racketMesh = (exId, side = 0, N = 120) => {
+  const e = byId(exId); const out = [];
+  for (let f = 0; f < N; f++) { const t = f / N; const { n, hits } = penCount(samplePose(e, t, side)); if (n) out.push(`${t.toFixed(3)} n=${n} ${JSON.stringify(hits)}`); }
+  return out.join('\n') || 'nessuna';
+};
+window.penAt = (exId, t, side = 0, overs = [{}]) => overs.map(o => { const r = penCount(mergeOver(samplePose(byId(exId), t, side), o)); const rf = stage.rig.racketFrame('R'); return { o, n: r.n, dir: rf.dir.toArray().map(x => +x.toFixed(2)), face: rf.face.toArray().map(x => +x.toFixed(2)) }; });
+// true min distance racket-head surface (approx: outline + grid) to body mesh vertices (excl. holding hands)
+window.racketGap = (exId, side = 0, N = 96) => {
+  const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const v = new V(); const out = [];
+  const meshes = []; stage.model.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
+  const local = []; for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; local.push([0.13 * Math.cos(a), 0.29 + 0.14 * Math.sin(a)]); }
+  for (let y = 0.19; y < 0.42; y += 0.04) for (let x = -0.1; x <= 0.1; x += 0.04) if ((x / 0.13) ** 2 + ((y - 0.29) / 0.14) ** 2 < 1) local.push([x, y]);
+  const one = (pose) => { rig.apply(pose); stage.model.updateMatrixWorld(true);
+    const s = pose.props && pose.props.racket; if (!s) return null;
+    const r = rig.racketFrame(s); const wx = new V().crossVectors(r.dir, r.face).normalize();
+    const pts = local.map(([x, y]) => r.grip.clone().addScaledVector(r.dir, y).addScaledVector(wx, x));
+    const o = s === 'L' ? 'Right' : 'Left'; const own = s === 'L' ? 'Left' : 'Right';
+    const attached = pose[s === 'L' ? 'R' : 'L'].attachW > 0.05;
+    let best = { d: 9 };
+    for (const m of meshes) {
+      const sk = m.skeleton; const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+      for (let i = 0; i < m.geometry.attributes.position.count; i += 2) {
+        let bi = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } }
+        const bn = sk.bones[bi].name.replace('mixamorig', '').replace(':', '');
+        if (bn.startsWith(own + 'Hand') || bn === own + 'ForeArm') continue;
+        if (attached && (bn.startsWith(o + 'Hand') || bn === o + 'ForeArm')) continue;
+        m.getVertexPosition(i, v); m.localToWorld(v);
+        for (const p of pts) { const d = Math.abs(v.clone().sub(p).dot(r.face)) < 0.03 ? p.distanceTo(v) : 9; if (d < best.d) best = { d, bn }; }
+      }
+    }
+    return best; };
+  if (window.__gapOver) return window.__gapOver.map(([t, o]) => { const b = one(mergeOver(samplePose(e, t, side), o)); return `${t} ${JSON.stringify(o)} ${b.d.toFixed(3)} ${b.bn}`; }).join('\n');
+  for (let f = 0; f < N; f++) { const t = f / N; const best = one(samplePose(e, t, side)); if (best) out.push(`${t.toFixed(3)} ${best.d.toFixed(3)} ${best.bn || ''}`); }
+  return out.join('\n');
+};
+
+window.showCourt = (ex, t, side = 0, shot, cam) => {
+  const e = byId(ex); stage.setCourt(true);
+  stage.court.configure(e.court, impactPoint(stage.rig, samplePose(e, e.court.hit, side)), side, shot, e.dur);
+  const r = window.show(ex, t, side, cam);
+  stage.court.update(t, stage.camera.aspect); stage.render(0.016);
+  const o = stage.court.out; const f = (v) => v.toArray().map(n => +n.toFixed(2));
+  return { netY: o.netY && +o.netY.toFixed(2), events: o.events.map(e => `${e.type}@${e.t.toFixed(2)} ${f(e.p)}`), lobApex: +(stage.court.lob.O.y + stage.court.lob.v.y ** 2 / 19.62).toFixed(2) };
+};

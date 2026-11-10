@@ -25,8 +25,16 @@ Serve solo **un elastico** (più una sedia e un tappetino) e, per i colpi, la tu
 | | **Esplosività** | | |
 | 11 | Squat jump | 3×5 | Esplosività |
 
-La bandeja è ricostruita fase per fase su un video tutorial di riferimento. Volée e vibora
-sono state tolte finché non avranno un loro video di riferimento.
+La bandeja è ricostruita fase per fase su un video tutorial di riferimento (tecnica, errori
+più comuni e scelte tattiche). Volée e vibora sono state tolte finché non avranno un loro
+video di riferimento.
+
+Per la bandeja il pulsante **Campo e palla** mette il manichino su un campo da padel vero
+(10 × 20 m, rete, vetri e griglia) e mostra la palla: il pallonetto che arriva, l'impatto sulla
+racchetta e dove va nell'altro campo, con rimbalzi su pavimento, vetri e griglia. Si può
+scegliere tra diagonale verso il vetro di fondo (la scelta principale), lungolinea d'attacco,
+piatta alla griglia e l'errore da evitare (vetro laterale per primo, palla al centro). Le
+indicazioni tattiche sono riassunte anche nella scheda, sotto **Dove mandarla**.
 
 I colpi sono animati per un destrorso; il pulsante **Mancino** li mostra a specchio.
 
@@ -49,7 +57,7 @@ Le animazioni non sono video: ogni ripetizione è descritta in termini anatomici
 `npm run verify` controlla 72 fotogrammi per esercizio (e per lato): corpo mai sotto il
 pavimento, piedi a terra che non si staccano né scivolano, ginocchia e gomiti entro i
 limiti anatomici, prono-supinazione e polso entro i loro range, nessuna compenetrazione
-tra braccia, busto, gambe e racchetta.
+tra braccia, busto, gambe e racchetta (tutto il bordo del piatto, non solo il manico).
 
 ## Sviluppo
 
