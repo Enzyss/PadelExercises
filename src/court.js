@@ -134,9 +134,11 @@ export class Court {
   configure(cfg, hit, side, shotId, dur) {
     this.cfg = cfg;
     this.dur = dur;
-    const sg = side === 1 ? -1 : 1;
+    // destrorsi e mancini stanno entrambi nella metà destra del campo: il mancino così ha il
+    // dritto verso il centro. Solo il corpo è a specchio (impatto a sinistra), campo e direzioni no.
+    const sg = 1;
     this.sg = sg;
-    this.cx = sg * 2.5;
+    this.cx = 2.5;
     this.court.position.set(this.cx, 0, cfg.net);
     const shot = cfg.shots.find((s) => s.id === shotId) || cfg.shots[0];
     this.shot = shot;

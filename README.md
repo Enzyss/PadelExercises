@@ -41,7 +41,8 @@ le direzioni consigliate nel video e l'errore da evitare:
 
 Le indicazioni tattiche sono riassunte anche nella scheda, sotto **Dove mandarla**.
 
-I colpi sono animati per un destrorso; il pulsante **Mancino** li mostra a specchio.
+I colpi sono animati per un destrorso; il pulsante **Mancino** li mostra a specchio. In campo
+entrambi stanno nella metà destra: il mancino così ha il dritto verso il centro.
 
 ## Come funzionano le animazioni
 

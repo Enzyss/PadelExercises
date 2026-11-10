@@ -79,8 +79,7 @@ function camFor(ex) {
     // the court cameras are set for a player 4 m from the net
     const dz = ex.court.net - 4;
     c.p[2] += dz; c.t[2] += dz;
-    if (state.side === 1) { c.p[0] = -c.p[0]; c.t[0] = -c.t[0]; }
-    return c;
+    return c; // same court half for both hands: the camera is not mirrored
   }
   const c = structuredClone(ex.cam);
   if (state.side === 1 && ex.sided) { c.p[0] = -c.p[0]; c.t[0] = -c.t[0]; }
