@@ -2,7 +2,7 @@ import { Stage } from './scene.js';
 import { EXERCISES, samplePose } from './exercises.js';
 import { MUSCLES } from './muscles.js';
 import { applyProps } from './props.js';
-import { impactPoint } from './court.js';
+import { impactPoint, aimFor } from './court.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => {
@@ -25,6 +25,7 @@ const state = {
   phase: 0, // animation phase in reps
   view: 'auto',
   court: false, // ball on a padel court (strokes only)
+  aim: null, // body turned towards the chosen shot (court mode)
   shot: null,
   // routine
   routine: null, // { set, rep, side, mode: 'work'|'rest'|'switch'|'done', left }
@@ -195,7 +196,8 @@ function refreshCourt() {
     return b;
   }));
   $('#shot-text').textContent = shot.text;
-  stage.court.configure(ex.court, impactPoint(stage.rig, samplePose(ex, ex.court.hit, state.side)), state.side, state.shot, ex.dur);
+  state.aim = aimFor(ex, state.side, shot, stage.rig, samplePose);
+  stage.court.configure(ex.court, impactPoint(stage.rig, samplePose(ex, ex.court.hit, state.side, state.aim)), state.side, state.shot, ex.dur);
 }
 $('#court').addEventListener('click', () => {
   state.court = !state.court;
@@ -330,7 +332,7 @@ function tick(now) {
   lastRepInt = repInt;
   if (r && r.mode !== 'work') { state.phase = 0; lastRepInt = 0; }
   if (stage.rig) {
-    const pose = samplePose(ex, state.phase, ex.sided ? state.side : 0);
+    const pose = samplePose(ex, state.phase, ex.sided ? state.side : 0, courtActive() ? state.aim : null);
     stage.rig.apply(pose);
     applyProps(stage, ex, pose);
     if (stage.courtOn) stage.court.update(state.phase, stage.camera.aspect);

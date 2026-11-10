@@ -39,6 +39,10 @@ le direzioni consigliate nel video e l'errore da evitare:
 - bandeja: diagonale verso il vetro di fondo, lungolinea d'attacco, piatta alla griglia, errore
   (vetro laterale per primo, palla al centro).
 
+In campo il colpo si orienta verso la direzione scelta: busto e braccio ruotano finché il piatto,
+all'impatto, guarda dove va la palla, e a fine accompagnamento il petto è rivolto verso il
+bersaglio. Vale anche per il mancino, che gioca dalla stessa metà del campo.
+
 Le indicazioni tattiche sono riassunte anche nella scheda, sotto **Dove mandarla**.
 
 I colpi sono animati per un destrorso; il pulsante **Mancino** li mostra a specchio. In campo

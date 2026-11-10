@@ -1,15 +1,15 @@
 import { Stage } from '../src/scene.js';
 import { EXERCISES, samplePose } from '../src/exercises.js';
 import { applyProps } from '../src/props.js';
-import { impactPoint } from '../src/court.js';
+import { impactPoint, aimFor } from '../src/court.js';
 import * as THREE from 'three';
 const stage = new Stage(document.getElementById('v'), { modelUrl: 'Xbot.glb', bloom: true, pixelRatio: 1 });
 window.stage = stage;
 await stage.ready;
 const byId = (k) => typeof k === 'number' ? EXERCISES[k] : EXERCISES.find(e => e.id === k);
-window.show = (ex, t, side = 0, cam, over) => {
+window.show = (ex, t, side = 0, cam, over, aim) => {
   const e = byId(ex);
-  let pose = samplePose(e, t, side);
+  let pose = samplePose(e, t, side, aim);
   if (over) for (const k in over) pose[k] = typeof over[k] === 'object' && !Array.isArray(over[k]) ? { ...pose[k], ...over[k] } : over[k];
   stage.rig.apply(pose);
   applyProps(stage, e, pose);
@@ -352,11 +352,13 @@ window.racketGap = (exId, side = 0, N = 96) => {
 
 window.showCourt = (ex, t, side = 0, shot, cam) => {
   const e = byId(ex); stage.setCourt(true);
-  stage.court.configure(e.court, impactPoint(stage.rig, samplePose(e, e.court.hit, side)), side, shot, e.dur);
-  const r = window.show(ex, t, side, cam);
+  const sh = e.court.shots.find((s) => s.id === shot) || e.court.shots[0];
+  const aim = aimFor(e, side, sh, stage.rig, samplePose);
+  stage.court.configure(e.court, impactPoint(stage.rig, samplePose(e, e.court.hit, side, aim)), side, sh.id, e.dur);
+  const r = window.show(ex, t, side, cam, null, aim);
   stage.court.update(t, stage.camera.aspect); stage.render(0.016);
   const o = stage.court.out; const f = (v) => v.toArray().map(n => +n.toFixed(2));
-  return { netY: o.netY && +o.netY.toFixed(2), events: o.events.map(e => `${e.type}@${e.t.toFixed(2)} ${f(e.p)}`), lobApex: +(stage.court.lob.O.y + stage.court.lob.v.y ** 2 / 19.62).toFixed(2) };
+  return { netY: o.netY && +o.netY.toFixed(2), events: o.events.map(e => `${e.type}@${e.t.toFixed(2)} ${f(e.p)}`), lobApex: +(stage.court.lob.O.y + stage.court.lob.v.y ** 2 / 19.62).toFixed(2), aim: [Math.round(aim.yaw), Math.round(aim.hflex)] };
 };
 window.armProbe = (exId, t, overs, side = 0) => overs.map((o) => {
   const pose = mergeOver(samplePose(byId(exId), t, side), o); const rig = stage.rig; rig.apply(pose);
@@ -366,3 +368,21 @@ window.armProbe = (exId, t, overs, side = 0) => overs.map((o) => {
   const r = rig.racketFrame('R'); const f = (v) => v.toArray().map((x) => +x.toFixed(2));
   return `${JSON.stringify(o.R)} clr ${d.toFixed(3)} grip ${f(r.grip)} dir ${f(r.dir)} face ${f(r.face)} elbow ${f(wp('RightForeArm'))}`;
 }).join('\n');
+window.aimCheck = (exId) => { const e = byId(exId); const out = [];
+  for (const side of [0, 1]) for (const sh of e.court.shots) { const aim = aimFor(e, side, sh, stage.rig, samplePose);
+    const pose = samplePose(e, e.court.hit, side, aim); stage.rig.apply(pose); const r = stage.rig.racketFrame(pose.props.racket);
+    const n = r.face.clone().multiplyScalar(r.face.z < 0 ? -1 : 1); const H = r.grip.clone().addScaledVector(r.dir, 0.29);
+    const tgt = Math.atan2(sh.land[0] - H.x, sh.land[1] - H.z) * 57.3, f = Math.atan2(n.x, n.z) * 57.3;
+    out.push(`${side ? 'mancino ' : 'destro  '} ${sh.id.padEnd(6)} target ${tgt.toFixed(0)}° piatto ${f.toFixed(0)}° aim yaw ${aim.yaw.toFixed(0)} hflex ${aim.hflex.toFixed(0)} fine ${aim.yawF.toFixed(0)}`); }
+  return out.join('\n'); };
+window.aimSafety = (exId) => { const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const out = [];
+  const wp = (n) => rig.b[n].getWorldPosition(new V());
+  const seg = (p1, q1, p2, q2) => { let best = 9; for (let i = 0; i <= 12; i++) { const a = p1.clone().lerp(q1, i / 12); const ab = q2.clone().sub(p2); const tt = Math.max(0, Math.min(1, a.clone().sub(p2).dot(ab) / ab.lengthSq())); best = Math.min(best, a.distanceTo(p2.clone().addScaledVector(ab, tt))); } return best; };
+  for (const side of [0, 1]) for (const sh of e.court.shots) { const aim = aimFor(e, side, sh, rig, samplePose); let arm = 9, rh = 9, reach = 0, slide = 0, prev = null;
+    for (let f = 0; f < 120; f++) { const t = f / 120; const pose = samplePose(e, t, side, aim); rig.apply(pose); const rs = pose.props.racket; const S = rs === 'R' ? 'Right' : 'Left';
+      arm = Math.min(arm, seg(wp(S + 'Arm').lerp(wp(S + 'ForeArm'), 0.35), wp(S + 'ForeArm'), wp('Hips'), wp('Spine2')) - 0.16);
+      const r = rig.racketFrame(rs); rh = Math.min(rh, seg(r.grip.clone().addScaledVector(r.dir, 0.16), r.grip.clone().addScaledVector(r.dir, 0.42), wp('Head'), wp('Head').add(new V(0, 0.12, 0))) - 0.12 - 0.13);
+      for (const s of ['L', 'R']) reach = Math.max(reach, rig.state.legs[s].reachError);
+      const b = ['LeftToeBase', 'RightToeBase'].map(wp); if (prev) ['L', 'R'].forEach((s, k) => { if (!(pose['F' + s].y > 0.001) && !prev[k].air) slide = Math.max(slide, Math.hypot(b[k].x - prev[k].p.x, b[k].z - prev[k].p.z)); }); prev = ['L', 'R'].map((s, k) => ({ p: b[k], air: pose['F' + s].y > 0.001 })); }
+    out.push(`${side ? 'mancino' : 'destro '} ${sh.id.padEnd(6)} braccio-busto ${arm.toFixed(3)} racchetta-testa ${rh.toFixed(3)} gambe ${reach.toFixed(3)} scivolo ${slide.toFixed(4)}`); }
+  return out.join('\n'); };

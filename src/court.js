@@ -7,6 +7,34 @@ const V3 = THREE.Vector3;
 const R_BALL = 0.033;
 const G = 9.81;
 
+// turn the stroke towards the chosen shot: the racket face at impact points where the ball goes.
+// Returns the aim for samplePose (torso yaw first, then the arm around the chest).
+export function aimFor(ex, side, shot, rig, samplePose) {
+  const c = ex.court;
+  const L = { x: shot.land[0], z: shot.land[1] };
+  let aim = { yaw: 0, hflex: 0, win: c.aimWin };
+  for (let k = 0; k < 3; k++) {
+    const pose = samplePose(ex, c.hit, side, aim);
+    rig.apply(pose);
+    const r = rig.racketFrame(pose.props.racket);
+    const n = r.face.clone().multiplyScalar(r.face.z < 0 ? -1 : 1);
+    const H = r.grip.clone().addScaledVector(r.dir, 0.29);
+    const err = (Math.atan2(L.x - H.x, L.z - H.z) - Math.atan2(n.x, n.z)) * 180 / Math.PI;
+    const total = aim.yaw + aim.hflex + err;
+    const yaw = Math.max(-45, Math.min(45, total * 0.7));
+    aim = { yaw, hflex: Math.max(-38, Math.min(38, total - yaw)), win: c.aimWin };
+  }
+  // end of the follow-through: chest facing where the ball goes
+  const fin = samplePose(ex, c.aimWin[2], side);
+  const chest = fin.hips.r[1] + fin.spine[1];
+  const pose = samplePose(ex, c.hit, side, aim);
+  rig.apply(pose);
+  const H = rig.racketFrame(pose.props.racket).grip;
+  const tgt = Math.atan2(L.x - H.x, L.z - H.z) * 180 / Math.PI;
+  aim.yawF = Math.max(-45, Math.min(45, tgt - chest));
+  return aim;
+}
+
 // ball centre at impact: centre of the racket face, on the side facing the net
 export function impactPoint(rig, pose) {
   rig.apply(pose);

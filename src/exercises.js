@@ -29,7 +29,26 @@ const EASE = {
 
 // keys: [{ t, pose, ease }] with t in [0,1]; mirror: 'alt' -> the cycle shows
 // side A then side B (mirrored); sided: user picks the side (default A)
-export function samplePose(ex, phase, side = 0) {
+// aim: optional { yaw, hflex, win: [a, b, c, d] } that turns the stroke towards a target, in world
+// degrees (+ = towards +X, the player's left). Ramps in between a and b, holds to c, out by d.
+// yaw goes to hips (40%) and chest (60%); hflex swings the racket arm around the chest.
+function applyAim(pose, t, aim) {
+  const [a, b, c, d] = aim.win;
+  const sm = (x) => x * x * (3 - 2 * x);
+  const w = t <= a || t >= d ? 0 : t < b ? sm((t - a) / (b - a)) : t <= c ? 1 : sm((d - t) / (d - c));
+  if (!w) return pose;
+  // from the impact to the end of the follow-through the chest goes on turning towards the target
+  const k = t <= b ? 0 : t >= c ? 1 : sm((t - b) / (c - b));
+  const yaw = aim.yaw + ((aim.yawF ?? aim.yaw) - aim.yaw) * k;
+  pose.hips.r[1] += 0.4 * yaw * w;
+  pose.spine[1] += 0.6 * yaw * w;
+  if (pose.head) pose.head[1] -= 0.45 * yaw * w;
+  const rs = pose.props && pose.props.racket;
+  if (rs && pose[rs].mode === 'fk') pose[rs].hflex = (pose[rs].hflex || 0) + (rs === 'R' ? 1 : -1) * aim.hflex * w;
+  return pose;
+}
+
+export function samplePose(ex, phase, side = 0, aim = null) {
   let t = ((phase % 1) + 1) % 1;
   let mirror = side === 1;
   if (ex.mirror === 'alt') {
@@ -44,7 +63,8 @@ export function samplePose(ex, phase, side = 0) {
   const u = span <= 0 ? 1 : Math.min(1, Math.max(0, (t - a.t) / span));
   const e = (EASE[b.ease || 'sine'] || EASE.sine)(u);
   const pose = lerpPose(a.pose, b.pose, e);
-  return mirror ? mirrorPose(pose) : pose;
+  const out = mirror ? mirrorPose(pose) : pose;
+  return aim ? applyAim(out, t, aim) : out;
 }
 
 // ===================================================================
@@ -492,14 +512,14 @@ const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: fa
 const V_READY = B_READY;
 const V_SPLIT = P({ hips: { p: [0, 0.97, -0.02] }, FL: { heel: 14, y: 0.02, toeFlat: false }, FR: { heel: 14, y: 0.02, toeFlat: false } }, V_READY);
 const V_LAND = P({ hips: { p: [0, 0.93, -0.02], r: [14, 0, 0] } }, V_READY);
-const V_PREP = P({ hips: { p: [0, 0.93, -0.03], r: [14, -18, 0] }, spine: [4, -14, 0], head: [-10, 30, 0],
+const V_PREP = P({ hips: { p: [0, 0.93, -0.03], r: [14, -24, 0] }, spine: [4, -22, 0], head: [-10, 42, 0],
   R: fk({ flex: 80, abd: 38, hflex: 51, rot: -52, elbow: 112, pron: 56, wflex: 13, wdev: -17, scap: [6, 2] }),
   L: freeL([0.58, 0.26, 0.28], [0.4, -1, -0.3], 0, 0.15) }, V_LAND);
-const V_HIT = P({ hips: { p: [0.02, 0.9, 0.06], r: [18, -14, 0] }, spine: [6, -10, 0], head: [-14, 22, 0],
+const V_HIT = P({ hips: { p: [0.02, 0.9, 0.06], r: [18, -6, 0] }, spine: [6, -4, 0], head: [-14, 14, 0],
   FL: { x: 0.2, z: 0.36, out: 8 }, FR: { heel: 12 },
   R: fk({ flex: 27, abd: 67, hflex: 72, rot: -34, elbow: 88, pron: 35, wflex: -50, wdev: -25, scap: [4, 0] }),
   L: freeL([0.58, 0.2, 0.24], [0.4, -1, -0.3], 0, 0.15), effort: 1 }, V_PREP);
-const V_FOLLOW = P({ hips: { p: [0.03, 0.88, 0.12], r: [20, 10, 0] }, spine: [10, 8, 0], head: [-18, -8, 0],
+const V_FOLLOW = P({ hips: { p: [0.03, 0.88, 0.12], r: [20, 18, 0] }, spine: [10, 16, 0], head: [-18, -14, 0],
   R: fk({ flex: 23, abd: 80, hflex: 83, rot: -39, elbow: 52, pron: -6, wflex: 10, wdev: -15, scap: [2, -4] }),
   L: freeL([0.58, 0.1, 0.02], [0.4, -1, -0.1], 0, 0.15), effort: 0.5 }, V_HIT);
 // la racchetta sale di lato passando davanti, lontana dal viso
@@ -548,6 +568,7 @@ const VOLEE_FH = {
   ],
   court: {
     hit: 0.46,
+    aimWin: [0.36, 0.46, 0.64, 0.84],
     net: 2.5,
     lob: { from: [5.2, 0.9, 11.6], start: 0.2 },
     shots: [
@@ -622,6 +643,7 @@ const BANDEJA = {
   // ball on a court: impact at phase `hit`; world metres, player at the origin facing the net (+Z)
   court: {
     hit: 0.53,
+    aimWin: [0.42, 0.53, 0.72, 0.88],
     net: 4,
     lob: { from: [5.0, 1.0, 12.2], start: 0.08 },
     shots: [
