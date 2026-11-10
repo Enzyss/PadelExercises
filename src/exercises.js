@@ -445,128 +445,46 @@ const NET = P({
   L: throat,
   props: { racket: 'R' },
 });
-const SPLIT_UP = P({ hips: { p: [0, 1.02, -0.02] }, FL: { heel: 18, y: 0.03, toeFlat: false }, FR: { heel: 18, y: 0.03, toeFlat: false } }, NET);
-const SPLIT_LAND = P({ hips: { p: [0, 0.92, -0.02] } }, NET);
-
-// ---------- Volée (dritto + rovescio) ----------
-const balanceL = freeL([0.36, -0.2, 0.3], [0.8, -1, -0.3]);
-const V_FH_PREP = P({
-  hips: { r: [12, -15, 0] }, spine: [4, -22, 0], head: [-10, 18, 0],
-  R: { mode: 'ik', space: 'world', t: [-0.34, 1.267, 0.148], hint: [-0.5, -1, 0.1], pron: -11, wflex: -48, wdev: -2, grip: 1 },
-  L: balanceL,
-}, SPLIT_LAND);
-const V_FH_STEP = P({ FL: { x: 0.18, z: 0.2, y: 0.06, heel: -6, toeFlat: false }, hips: { p: [0, 0.94, 0.05] } }, V_FH_PREP);
-const V_FH_HIT = P({
-  hips: { p: [0.02, 0.9, 0.14], r: [14, -8, 0] }, spine: [6, -10, 0], head: [-12, 10, 0],
-  FL: { x: 0.16, z: 0.4, y: 0, heel: 0 }, FR: { heel: 10 },
-  R: { mode: 'ik', space: 'world', t: [-0.257, 1.174, 0.41], hint: [-0.7, -1, 0.2], pron: 9, wflex: -49, wdev: -25, grip: 1 },
-  effort: 1,
-}, V_FH_PREP);
-const V_FH_FOLLOW = P({ R: { mode: 'ik', space: 'world', t: [-0.22, 1.08, 0.53], hint: [-0.7, -1, 0.2], pron: -12, wflex: -45, wdev: -25, grip: 1 } }, V_FH_HIT);
-const V_FH_BACK = P({ FL: { x: 0.2, z: 0.2, y: 0.05, heel: 8, toeFlat: false }, hips: { p: [0, 0.94, 0.05] }, effort: 0.2 }, P({ R: R_READY, L: throat }, V_FH_PREP));
-
-const balanceBackL = freeL([0.45, -0.28, -0.12], [0.6, -1, 0.3]);
-const V_BH_PREP = P({
-  hips: { r: [12, 16, 0] }, spine: [4, 22, 0], head: [-10, -20, 0],
-  R: { mode: 'ik', space: 'world', t: [0.17, 1.29, 0.31], hint: [0.3, -0.8, 1], pron: -7, wflex: 10, wdev: -25, grip: 1 },
-  L: throat,
-}, SPLIT_LAND);
-const V_BH_STEP = P({ FR: { x: -0.18, z: 0.2, y: 0.06, heel: -6, toeFlat: false }, hips: { p: [0, 0.94, 0.05] } }, V_BH_PREP);
-const V_BH_HIT = P({
-  hips: { p: [-0.02, 0.9, 0.14], r: [14, 8, 0] }, spine: [6, 10, 0], head: [-12, -10, 0],
-  FR: { x: -0.16, z: 0.4, y: 0, heel: 0 }, FL: { heel: 10 },
-  R: { mode: 'ik', space: 'world', t: [0.27, 1.17, 0.6], hint: [0.2, -1, 0.7], pron: -30, wflex: 12, wdev: -3, grip: 1 },
-  L: balanceBackL,
-  effort: 1,
-}, V_BH_PREP);
-const V_BH_FOLLOW = P({ R: { mode: 'ik', space: 'world', t: [0.21, 1.07, 0.64], hint: [0, -1, 0.2], pron: -15, wflex: 12, wdev: -3, grip: 1 } }, V_BH_HIT);
-const V_BH_BACK = P({ FR: { x: -0.2, z: 0.2, y: 0.05, heel: 8, toeFlat: false }, hips: { p: [0, 0.94, 0.05] }, effort: 0.2 }, P({ R: R_READY, L: freeL([0.42, -0.16, 0.34], [0.8, -1, -0.2], 0.4, 0.4) }, V_BH_PREP));
-
-const VOLLEY = {
-  id: 'volee',
-  name: 'Volée a vuoto: dritto e rovescio',
-  short: 'Volée',
-  section: 'Colpi a vuoto',
-  sets: 2, reps: 6, unit: 'per lato',
-  tempo: 'split-step · passo · impatto corto',
-  dur: 5.2,
-  sided: true,
-  sideLabels: ['Destrorso', 'Mancino'],
-  handed: true,
-  equip: 'La tua racchetta, senza palla',
-  prim: ['deltAnt', 'estensori'],
-  sec: ['obliqui', 'quadricipiti', 'cuffia'],
-  why: 'Ripetere il gesto a vuoto fissa i punti chiave della volée prima di entrare in campo: split-step, preparazione corta, impatto davanti al corpo e polso fermo. Scalda spalla e avambraccio con lo stesso movimento che userai a rete.',
-  cues: [
-    'Posizione di attesa: ginocchia flesse, racchetta davanti al petto con la testa in alto, l\'altra mano sul cuore della racchetta.',
-    'Split-step: un piccolo saltello sugli avampiedi quando l\'avversario colpisce.',
-    'Preparazione corta: ruoti le spalle, la racchetta resta davanti e sopra il polso.',
-    'Passo in avanti con il piede opposto al colpo e impatto davanti al corpo.',
-    'Accompagna poco in avanti e in basso, con la faccia della racchetta leggermente aperta. Torna subito in posizione.',
-  ],
-  errors: ['Caricare troppo indietro la racchetta', 'Far cadere la testa della racchetta sotto il polso', 'Colpire di fianco o dietro il corpo', 'Dimenticare lo split-step'],
-  props: { mat: [1.0, 1.2, 0, 0.15] },
-  cam: { p: [1.6, 1.55, 3.2], t: [0, 1.0, 0.2] },
-  keys: [
-    { t: 0, pose: NET },
-    { t: 0.04, pose: SPLIT_UP, ease: 'out' },
-    { t: 0.08, pose: SPLIT_LAND, ease: 'in' },
-    { t: 0.14, pose: V_FH_PREP, ease: 'sine' },
-    { t: 0.18, pose: V_FH_STEP, ease: 'sine' },
-    { t: 0.22, pose: V_FH_HIT, ease: 'io' },
-    { t: 0.26, pose: V_FH_FOLLOW, ease: 'out' },
-    { t: 0.31, pose: V_FH_FOLLOW, ease: 'lin' },
-    { t: 0.37, pose: V_FH_BACK, ease: 'sine' },
-    { t: 0.46, pose: NET, ease: 'sine' },
-    { t: 0.5, pose: NET, ease: 'lin' },
-    { t: 0.54, pose: SPLIT_UP, ease: 'out' },
-    { t: 0.58, pose: SPLIT_LAND, ease: 'in' },
-    { t: 0.64, pose: V_BH_PREP, ease: 'sine' },
-    { t: 0.68, pose: V_BH_STEP, ease: 'sine' },
-    { t: 0.72, pose: V_BH_HIT, ease: 'io' },
-    { t: 0.76, pose: V_BH_FOLLOW, ease: 'out' },
-    { t: 0.81, pose: V_BH_FOLLOW, ease: 'lin' },
-    { t: 0.87, pose: V_BH_BACK, ease: 'sine' },
-    { t: 0.96, pose: NET, ease: 'sine' },
-    { t: 1, pose: NET, ease: 'lin' },
-  ],
-};
 
 // ---------- Bandeja ----------
-const SIDE_ON = { hips: { p: [0, 0.97, -0.08], r: [6, -62, 0] }, spine: [0, -18, 0], head: [0, 55, 0] };
+// Ricostruita sul video di riferimento (fasi: attesa, girata con due mani,
+// preparazione alta con braccio sinistro che indica la palla, impatto davanti
+// e sopra la spalla destra, accompagnamento in avanti verso sinistra, rientro).
+// Il braccio della racchetta è in angoli articolari (FK): tra una fase e l'altra
+// le articolazioni ruotano in modo continuo, senza scorciatoie davanti al viso.
+const B_READY = P({ R: fk({ flex: 30, abd: 18, rot: 40, elbow: 105, pron: 0, wflex: 0, wdev: 0 }) }, NET);
 const B_TURN = P({
-  ...SIDE_ON,
-  FL: { x: 0.24, z: 0, out: -50 },
-  FR: { x: -0.1, z: -0.34, out: 72, y: 0 },
-  R: { mode: 'ik', space: 'world', t: [-0.27, 1.36, -0.26], hint: [-0.3, -0.4, -1], pron: -60, wflex: -11, wdev: 20, grip: 1 },
-  L: freeL([0.42, 0.45, 0.22], [0.6, -1, -0.2]),
-}, NET);
+  hips: { p: [0, 0.96, -0.06], r: [8, -55, 0] }, spine: [2, -15, 0], head: [-6, 50, 0],
+  FL: { x: 0.24, z: 0, out: -45 },
+  FR: { x: -0.1, z: -0.34, out: 72 },
+  R: fk({ flex: 15, abd: 30, hflex: 45, rot: -30, elbow: 120, pron: -20, wdev: -15, scap: [4, 0] }),
+  L: freeL([0.02, -0.1, 0.3], [0.7, -1, -0.3], 1, 0.5),
+}, B_READY);
 const B_PREP = P({
-  hips: { p: [0, 0.99, -0.16], r: [4, -66, 0] },
-  FL: { x: 0.24, z: 0, out: -54 },
+  hips: { p: [0, 0.97, -0.12], r: [6, -62, 0] }, spine: [0, -18, 0], head: [-14, 58, 0],
+  FL: { x: 0.24, z: 0, out: -50 },
   FR: { x: -0.1, z: -0.34, out: 74 },
-  R: { mode: 'ik', space: 'world', t: [-0.12, 1.53, -0.36], hint: [-0.4, -0.1, -1], pron: -70, wflex: -45, wdev: -15, grip: 1 },
-  L: freeL([0.4, 0.6, 0.18], [0.6, -1, -0.2]),
+  R: fk({ flex: 0, abd: 100, hflex: 20, rot: -65, elbow: 100, pron: -55, wflex: -10, wdev: -25, scap: [12, 4] }),
+  L: freeL([0.3, 0.55, 0.28], [0.6, -0.4, -0.6], 0, 0.15),
 }, B_TURN);
-const B_SWING = (prep) => P({ R: { mode: 'ik', space: 'world', t: [-0.36, 1.62, -0.02], hint: [-0.8, -0.6, -0.4], pron: -40, wflex: -45, wdev: -15, grip: 1 } }, prep);
+const B_LOOP = P({ R: fk({ flex: 0, abd: 110, hflex: 35, rot: -85, elbow: 110, pron: -60, wflex: -30, wdev: -20, scap: [14, 6] }) }, B_PREP);
 const B_HIT = P({
-  hips: { p: [0.02, 0.99, -0.04], r: [4, -46, 0] }, spine: [2, -10, 0], head: [-6, 40, 0],
-  FR: { heel: 24 },
-  R: { mode: 'ik', space: 'world', t: [-0.198, 1.645, 0.542], hint: [-0.7, -0.7, -0.2], pron: -4, wflex: -42, wdev: -18, grip: 1 },
-  L: freeL([0.12, -0.12, 0.3], [0.8, -1, -0.2]),
+  hips: { p: [0.02, 0.98, -0.04], r: [4, -38, 0] }, spine: [0, -4, 0], head: [-16, 38, 0],
+  FR: { heel: 22 },
+  R: fk({ flex: 0, abd: 130, hflex: 90, rot: -20, elbow: 15, pron: -20, wdev: -20, scap: [14, 0] }),
+  L: freeL([0.18, 0.05, 0.3], [0.8, -1, -0.3], 0, 0.3),
   effort: 1,
 }, B_PREP);
 const B_FOLLOW = P({
-  hips: { p: [0.04, 0.97, 0.04], r: [6, -38, 0] }, spine: [6, -6, 0], head: [-10, 32, 0],
-  FR: { heel: 34 },
-  R: { mode: 'ik', space: 'world', t: [-0.19, 1.3, 0.58], hint: [-0.6, -1, 0], pron: -30, wflex: -35, wdev: -20, grip: 1 },
+  hips: { p: [0.05, 0.96, 0.04], r: [8, -18, 0] }, spine: [6, 6, 0], head: [-10, 12, 0],
+  FR: { heel: 36 },
+  R: fk({ flex: 0, abd: 75, hflex: 100, rot: 0, elbow: 25, pron: -20, scap: [4, -6] }),
+  L: freeL([0.12, -0.02, 0.24], [0.8, -1, -0.2], 0, 0.3),
   effort: 0.5,
 }, B_HIT);
-
-// right foot steps back into the side-on stance and forward again to recover
-const footUp = { FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } };
-const B_STEP_BACK = P({ ...footUp, L: freeL([0.42, 0.02, 0.3], [0.7, -1, -0.2], 0, 0.3), R: { t: [-0.32, 1.24, 0.08], hint: [-0.6, -1, 0], pron: -35, wflex: -10, wdev: 20 } }, lerpPose(NET, B_TURN, 0.5));
-const B_STEP_FWD = P(footUp, lerpPose(B_FOLLOW, NET, 0.5));
+// il piede destro torna in avanti nella posizione di attesa
+const B_STEP_FWD = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_FOLLOW, B_READY, 0.5));
+const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_READY, B_TURN, 0.5));
 
 const BANDEJA = {
   id: 'bandeja',
@@ -574,99 +492,37 @@ const BANDEJA = {
   short: 'Bandeja',
   section: 'Colpi a vuoto',
   sets: 2, reps: 6, unit: 'rip',
-  tempo: 'girata · preparazione alta · impatto · chiusura in avanti',
-  dur: 3.6,
+  tempo: 'girata · preparazione alta · impatto davanti · accompagna verso sinistra',
+  dur: 4.2,
   sided: true,
   sideLabels: ['Destrorso', 'Mancino'],
   handed: true,
   equip: 'La tua racchetta, senza palla',
   prim: ['deltAnt', 'cuffia'],
   sec: ['obliqui', 'tricipiti', 'estensori'],
-  why: 'La bandeja serve a difendere la rete con controllo. Ripeterla a vuoto allena la posizione di profilo, la preparazione alta e l\'impatto davanti al corpo, e scalda la spalla nella posizione che userai in partita.',
+  why: 'La bandeja ("vassoio") serve a riconquistare la rete quando l\'avversario ti alza un pallonetto. Ripeterla a vuoto fissa la sequenza giusta e scalda la spalla nella posizione che userai in partita.',
   cues: [
-    'Gira di profilo: spalla sinistra verso la rete, piede destro indietro.',
-    'Prepara alta: gomito all\'altezza della spalla, racchetta su e dietro, braccio sinistro che indica la palla.',
-    'Colpisci davanti e a destra della testa, braccio quasi disteso, faccia leggermente aperta per il taglio.',
-    'Resta di profilo all\'impatto: il busto ruota poco.',
-    'Chiudi in avanti verso la rete, il braccio sinistro si raccoglie sul petto per l\'equilibrio.',
+    'Attesa: racchetta davanti al petto, testa in alto, mano sinistra sul cuore della racchetta.',
+    'Girata: porti la racchetta su a destra con tutte e due le mani e ti metti di profilo, piede destro indietro.',
+    'Preparazione: gomito all\'altezza della spalla, racchetta su sopra la spalla destra, braccio sinistro alto che indica la palla.',
+    'Impatto davanti e sopra la spalla destra, braccio quasi disteso, faccia leggermente aperta (taglio).',
+    'Accompagna in avanti e verso sinistra, la racchetta resta "a vassoio". Poi torna in attesa con due mani.',
   ],
-  errors: ['Girarsi frontali alla rete', 'Colpire dietro la testa', 'Chiudere verso il basso come uno smash', 'Braccio sinistro inattivo'],
+  errors: ['Restare frontali alla rete', 'Colpire dietro la testa', 'Chiudere verso il basso come uno smash', 'Braccio sinistro che non indica la palla'],
   props: { mat: [1.0, 1.3, 0, -0.1] },
-  cam: { p: [-2.6, 1.6, 2.3], t: [0, 1.25, 0] },
+  cam: { p: [0.4, 1.5, 3.4], t: [0, 1.25, 0] }, // come nel video: dalla rete, davanti al giocatore
   keys: [
-    { t: 0, pose: NET },
+    { t: 0, pose: B_READY },
     { t: 0.08, pose: B_STEP_BACK, ease: 'sine' },
     { t: 0.16, pose: B_TURN, ease: 'sine' },
-    { t: 0.36, pose: B_PREP, ease: 'sine' },
-    { t: 0.44, pose: B_PREP, ease: 'lin' },
-    { t: 0.49, pose: B_SWING(B_PREP), ease: 'in' },
-    { t: 0.53, pose: B_HIT, ease: 'lin' },
+    { t: 0.32, pose: B_PREP, ease: 'sine' },
+    { t: 0.42, pose: B_PREP, ease: 'lin' },
+    { t: 0.48, pose: B_LOOP, ease: 'sine' },
+    { t: 0.53, pose: B_HIT, ease: 'in' },
     { t: 0.62, pose: B_FOLLOW, ease: 'out' },
-    { t: 0.7, pose: B_FOLLOW, ease: 'lin' },
-    { t: 0.85, pose: B_STEP_FWD, ease: 'sine' },
-    { t: 1, pose: NET, ease: 'sine' },
-  ],
-};
-
-// ---------- Vibora ----------
-const VB_PREP = P({
-  hips: { p: [0, 0.98, -0.16], r: [6, -70, 0] }, spine: [2, -22, 0], head: [-2, 62, 0],
-  R: { mode: 'ik', space: 'world', t: [-0.22, 1.45, -0.36], hint: [-0.3, -0.3, -1], pron: -75, wflex: -55, wdev: 0, grip: 1 },
-  L: freeL([0.38, 0.6, 0.16], [0.6, -1, -0.2]),
-}, B_PREP);
-const VB_HIT = P({
-  hips: { p: [0.02, 0.98, -0.02], r: [6, -34, 0] }, spine: [4, 2, 0], head: [-6, 30, 0],
-  FR: { heel: 30, out: 60 },
-  R: { mode: 'ik', space: 'world', t: [-0.466, 1.52, 0.066], hint: [-0.9, -0.5, -0.1], pron: -28, wflex: -27, wdev: -25, grip: 1 },
-  L: freeL([0.12, -0.14, 0.3], [0.8, -1, -0.2]),
-  effort: 1,
-}, VB_PREP);
-const VB_FOLLOW = P({
-  hips: { p: [0.05, 0.94, 0.08], r: [10, -18, 0] }, spine: [12, 14, 0], head: [-16, 12, 0],
-  FR: { heel: 44, out: 40 },
-  R: { mode: 'ik', space: 'world', t: [0.1, 1.04, 0.33], hint: [-0.5, -1, 0.2], pron: 60, wflex: 10, wdev: -10, grip: 1 },
-  effort: 0.5,
-}, VB_HIT);
-
-const VB_STEP_FWD = P(footUp, lerpPose(VB_FOLLOW, NET, 0.5));
-
-const VIBORA = {
-  id: 'vibora',
-  name: 'Vibora a vuoto',
-  short: 'Vibora',
-  section: 'Colpi a vuoto',
-  sets: 2, reps: 6, unit: 'rip',
-  tempo: 'girata · preparazione dietro · colpo veloce di lato · chiusura a sinistra',
-  dur: 3.4,
-  sided: true,
-  sideLabels: ['Destrorso', 'Mancino'],
-  handed: true,
-  equip: 'La tua racchetta, senza palla',
-  prim: ['deltAnt', 'obliqui', 'cuffia'],
-  sec: ['pettorali', 'estensori', 'dorsali'],
-  why: 'La vibora è più aggressiva della bandeja: più rotazione del busto, impatto più laterale e taglio laterale con pronazione. Farla a vuoto prepara spalla, polso e tronco a un gesto veloce che senza riscaldamento sovraccarica gomito e spalla.',
-  cues: [
-    'Girata di profilo come nella bandeja, ma con la racchetta più dietro la schiena.',
-    'Colpisci più di lato, a destra della testa, all\'altezza della spalla o poco sopra.',
-    'Il busto ruota di più verso la rete e il piede destro gira sull\'avampiede.',
-    'La racchetta passa da dietro-destra a avanti-sinistra, tagliando di lato con una pronazione dell\'avambraccio.',
-    'Chiudi davanti all\'anca sinistra e torna in posizione.',
-  ],
-  errors: ['Colpire troppo sopra la testa (diventa una bandeja)', 'Usare solo il polso', 'Non ruotare il busto'],
-  props: { mat: [1.0, 1.3, 0, -0.1] },
-  cam: { p: [-2.4, 1.6, 2.6], t: [0, 1.2, 0] },
-  keys: [
-    { t: 0, pose: NET },
-    { t: 0.08, pose: B_STEP_BACK, ease: 'sine' },
-    { t: 0.16, pose: B_TURN, ease: 'sine' },
-    { t: 0.36, pose: VB_PREP, ease: 'sine' },
-    { t: 0.43, pose: VB_PREP, ease: 'lin' },
-    { t: 0.47, pose: B_SWING(VB_PREP), ease: 'in' },
-    { t: 0.5, pose: VB_HIT, ease: 'lin' },
-    { t: 0.6, pose: VB_FOLLOW, ease: 'out' },
-    { t: 0.68, pose: VB_FOLLOW, ease: 'lin' },
-    { t: 0.84, pose: VB_STEP_FWD, ease: 'sine' },
-    { t: 1, pose: NET, ease: 'sine' },
+    { t: 0.72, pose: B_FOLLOW, ease: 'lin' },
+    { t: 0.86, pose: B_STEP_FWD, ease: 'sine' },
+    { t: 1, pose: B_READY, ease: 'sine' },
   ],
 };
 
@@ -713,4 +569,4 @@ const SJ = {
   ],
 };
 
-export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLLEY, BANDEJA, VIBORA, SJ];
+export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, BANDEJA, SJ];

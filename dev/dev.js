@@ -6,9 +6,10 @@ const stage = new Stage(document.getElementById('v'), { modelUrl: 'Xbot.glb', bl
 window.stage = stage;
 await stage.ready;
 const byId = (k) => typeof k === 'number' ? EXERCISES[k] : EXERCISES.find(e => e.id === k);
-window.show = (ex, t, side = 0, cam) => {
+window.show = (ex, t, side = 0, cam, over) => {
   const e = byId(ex);
-  const pose = samplePose(e, t, side);
+  let pose = samplePose(e, t, side);
+  if (over) for (const k in over) pose[k] = typeof over[k] === 'object' && !Array.isArray(over[k]) ? { ...pose[k], ...over[k] } : over[k];
   stage.rig.apply(pose);
   applyProps(stage, e, pose);
   stage.setMuscles(e.prim, e.sec, null);
@@ -203,3 +204,58 @@ window.keyClear = (exId, side = 0) => {
 };
 window.lowScan = (exId, side = 0) => { const e = byId(exId); const out = []; for (let f = 0; f < 60; f++) { const pose = samplePose(e, f / 60, side); stage.rig.apply(pose); const lb = window.lowByBone(); const bad = Object.entries(lb).filter(([k, v]) => v < -0.01); if (bad.length) out.push(`ph ${(f / 60).toFixed(3)} ${JSON.stringify(bad)} FR ${JSON.stringify(pose.FR)} FL ${JSON.stringify(pose.FL)}`); } return out.join('\n'); };
 window.slideScan = (exId, side = 0) => { const e = byId(exId); const out = []; let prev = null; const V = THREE.Vector3; for (let f = 0; f < 72; f++) { const pose = samplePose(e, f / 72, side); stage.rig.apply(pose); const b = ['LeftToeBase', 'RightToeBase'].map(n => stage.rig.b[n].getWorldPosition(new V())); if (prev) ['L', 'R'].forEach((s, k) => { if (!(pose['F' + s].y > 0.001) && !prev[k].air) { const d = Math.hypot(b[k].x - prev[k].p.x, b[k].z - prev[k].p.z); if (d > 0.002) out.push(`f${f} ${s} ${d.toFixed(4)} ${JSON.stringify(pose['F' + s])}`); } }); prev = ['L', 'R'].map((s, k) => ({ p: b[k], air: pose['F' + s].y > 0.001 })); } return out.join('\n'); };
+// racket frame + arm state at each key (or given phases)
+window.racketAt = (exId, ts, side = 0) => {
+  const e = byId(exId); const rig = stage.rig; const out = [];
+  const list = ts || e.keys.map(k => k.t);
+  const f2 = (v) => v.toArray().map(n => +n.toFixed(2));
+  for (const t of list) {
+    const pose = samplePose(e, t, side); rig.apply(pose);
+    const s = pose.props && pose.props.racket; if (!s) continue;
+    const r = rig.racketFrame(s); const head = r.grip.clone().addScaledVector(r.dir, 0.3);
+    const hp = rig.b.Head.getWorldPosition(new THREE.Vector3());
+    out.push(`t=${t} grip ${f2(r.grip)} dir ${f2(r.dir)} face ${f2(r.face)} headC ${f2(head)} | head ${f2(hp)} | L ${JSON.stringify(Object.fromEntries(Object.entries(rig.state.arms.L).map(([k,v])=>[k,typeof v==='number'?Math.round(v):v])))}`);
+  }
+  return out.join('\n');
+};
+// keep the FK arm angles of a key, search pron/wflex/wdev for a racket dir + face (world)
+window.fitWristFK = (exId, t, target, side = 0) => {
+  const e = byId(exId); const base = samplePose(e, t, side);
+  const s = base.props.racket; const rig = stage.rig;
+  const D = new THREE.Vector3(...target.dir).normalize();
+  const F = new THREE.Vector3(...target.face); F.addScaledVector(D, -F.dot(D)).normalize();
+  const R = { pron: [-85, 85], wflex: [-60, 50], wdev: [-25, 28] };
+  const evalP = (p) => { const pose = structuredClone(base); Object.assign(pose[s], p); rig.apply(pose); const r = rig.racketFrame(s);
+    const de = 1 - r.dir.dot(D), fe = 1 - r.face.dot(F); const reg = ((p.wflex ** 2 + p.wdev ** 2) / 3600) * 0.3 + (p.pron ** 2 / 8100) * 0.15;
+    return { cost: de * (target.wd ?? 6) + fe * (target.wf ?? 4) + reg, de, fe }; };
+  const clampP = (p) => { for (const k in R) p[k] = Math.max(R[k][0], Math.min(R[k][1], p[k])); return p; };
+  let best = null;
+  for (const pron of [-70, -35, 0, 35, 70]) for (const wflex of [-40, 0, 30]) {
+    let p = { pron, wflex, wdev: 0 }; let c = evalP(p).cost;
+    for (const step of [16, 8, 4, 2, 1]) { let imp = true; while (imp) { imp = false; for (const k in R) for (const dd of [step, -step]) { const q = clampP({ ...p, [k]: p[k] + dd }); const cq = evalP(q).cost; if (cq < c - 1e-6) { p = q; c = cq; imp = true; } } } }
+    if (!best || c < best.c) best = { c, p };
+  }
+  const r = evalP(best.p);
+  return `pron: ${best.p.pron}, wflex: ${best.p.wflex}, wdev: ${best.p.wdev} // dir err ${(Math.acos(1 - r.de) * 57.3).toFixed(0)}° face err ${(Math.acos(Math.max(-1, 1 - r.fe)) * 57.3).toFixed(0)}°`;
+};
+// fit all FK racket-arm angles to grip + dir + face, staying close to a seed and to a
+// comfortable wrist (small wflex/wdev, moderate pronation)
+window.fitArmNear = (exId, t, target, side = 0) => {
+  const e = byId(exId); const base = samplePose(e, t, side);
+  const s = base.props.racket; const rig = stage.rig;
+  const G = new THREE.Vector3(...target.grip), D = new THREE.Vector3(...target.dir).normalize();
+  const F = new THREE.Vector3(...target.face); F.addScaledVector(D, -F.dot(D)).normalize();
+  const seed = { ...RANGES0, ...Object.fromEntries(Object.keys(RANGES).map(k => [k, base[s][k] || 0])), ...(target.seed || {}) };
+  const keys = Object.keys(RANGES);
+  const evalP = (p) => { const pose = structuredClone(base); Object.assign(pose[s], p); rig.apply(pose); const r = rig.racketFrame(s);
+    const pe = r.grip.distanceTo(G), de = 1 - r.dir.dot(D), fe = 1 - r.face.dot(F);
+    let near = 0; for (const k of ['flex', 'abd', 'hflex', 'rot', 'elbow']) near += ((p[k] - seed[k]) / 60) ** 2;
+    const comfort = (p.wflex ** 2 + p.wdev ** 2) / 1600 + Math.max(0, Math.abs(p.pron) - 50) ** 2 / 900;
+    return { cost: pe * pe * 300 + de * 8 + fe * (target.wf ?? 4) + near * (target.wn ?? 0.3) + comfort * 0.5, pe, de, fe }; };
+  const clampP = (p) => { for (const k of keys) p[k] = Math.max(RANGES[k][0], Math.min(RANGES[k][1], p[k])); return p; };
+  let p = clampP({ ...seed }); let c = evalP(p).cost;
+  for (const step of [16, 8, 4, 2, 1]) { let imp = true; while (imp) { imp = false; for (const k of keys) for (const dd of [step, -step]) { const q = clampP({ ...p, [k]: p[k] + dd }); const cq = evalP(q).cost; if (cq < c - 1e-6) { p = q; c = cq; imp = true; } } } }
+  const r = evalP(p);
+  return Object.entries(p).map(([k, v]) => `${k}: ${Math.round(v)}`).join(', ') + ` // pos ${(r.pe * 100).toFixed(1)}cm dir ${(Math.acos(1 - r.de) * 57.3).toFixed(0)}° face ${(Math.acos(Math.max(-1, 1 - r.fe)) * 57.3).toFixed(0)}°`;
+};
+const RANGES0 = { flex: 0, abd: 0, hflex: 0, rot: 0, elbow: 90, pron: 0, wflex: 0, wdev: 0 };
