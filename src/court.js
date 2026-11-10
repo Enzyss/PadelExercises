@@ -243,8 +243,14 @@ export class Court {
       if (k % 2 === 1) pts.push({ t, p: p.clone() });
     }
     if (shot.error) {
-      const last = pts[pts.length - 1].p;
-      events.push({ t: pts[pts.length - 1].t - 0.2, p: new V3(last.x, R_BALL, last.z), n: new V3(0, 1, 0), type: 'end', text: 'Al centro: palla comoda' });
+      // where the mistake shows: by default where the ball ends up, or at its first bounce
+      const first = events.find((e) => e.type === 'floor');
+      if (shot.errorAt === 'bounce' && first) {
+        first.text = shot.errorLabel;
+      } else {
+        const last = pts[pts.length - 1].p;
+        events.push({ t: pts[pts.length - 1].t - 0.2, p: new V3(last.x, R_BALL, last.z), n: new V3(0, 1, 0), type: 'end', text: shot.errorLabel || 'Al centro: palla comoda' });
+      }
     }
     return { pts, events, netY };
   }

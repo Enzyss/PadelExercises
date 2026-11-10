@@ -1,6 +1,6 @@
 # Padel Pre-Partita
 
-Web app con una routine di 11 esercizi da fare a casa prima di una partita di padel.
+Web app con una routine di 12 esercizi da fare a casa prima di una partita di padel.
 Ogni esercizio è animato su un manichino 3D con i muscoli coinvolti evidenziati
 (rosso = principali, giallo = secondari), con serie, ripetizioni, ritmo, istruzioni
 ed errori da evitare. La modalità **Inizia routine** conta le ripetizioni, gestisce
@@ -21,20 +21,25 @@ Serve solo **un elastico** (più una sedia e un tappetino) e, per i colpi, la tu
 | 8 | Dead bug | 2×8 per lato | Stabilità del core |
 | 9 | Diagonale con elastico sotto il piede | 2×8 per lato | Rotazione dal basso verso l'alto |
 | | **Colpi a vuoto (con la racchetta)** | | |
-| 10 | Bandeja | 2×6 | Girata, preparazione alta, impatto davanti, accompagnamento a sinistra |
+| 10 | Volée di dritto | 2×8 | Preparazione corta, impatto davanti, passo di scarico |
+| 11 | Bandeja | 2×6 | Girata, preparazione alta, impatto davanti, accompagnamento a sinistra |
 | | **Esplosività** | | |
-| 11 | Squat jump | 3×5 | Esplosività |
+| 12 | Squat jump | 3×5 | Esplosività |
 
-La bandeja è ricostruita fase per fase su un video tutorial di riferimento (tecnica, errori
-più comuni e scelte tattiche). Volée e vibora sono state tolte finché non avranno un loro
-video di riferimento.
+Volée di dritto e bandeja sono ricostruite fase per fase su due video tutorial di riferimento
+(tecnica, errori più comuni e scelte tattiche). Volée di rovescio e vibora arriveranno quando
+avranno un loro video di riferimento.
 
-Per la bandeja il pulsante **Campo e palla** mette il manichino su un campo da padel vero
-(10 × 20 m, rete, vetri e griglia) e mostra la palla: il pallonetto che arriva, l'impatto sulla
-racchetta e dove va nell'altro campo, con rimbalzi su pavimento, vetri e griglia. Si può
-scegliere tra diagonale verso il vetro di fondo (la scelta principale), lungolinea d'attacco,
-piatta alla griglia e l'errore da evitare (vetro laterale per primo, palla al centro). Le
-indicazioni tattiche sono riassunte anche nella scheda, sotto **Dove mandarla**.
+Per entrambi i colpi il pulsante **Campo e palla** mette il manichino su un campo da padel vero
+(10 × 20 m, rete, vetri e griglia) e mostra la palla: quella che arriva, l'impatto sulla
+racchetta e dove va nell'altro campo, con rimbalzi su pavimento, vetri e griglia. Si sceglie tra
+le direzioni consigliate nel video e l'errore da evitare:
+
+- volée di dritto: diagonale profonda, spazio libero, alla griglia, schiaffo al volo, errore (corta);
+- bandeja: diagonale verso il vetro di fondo, lungolinea d'attacco, piatta alla griglia, errore
+  (vetro laterale per primo, palla al centro).
+
+Le indicazioni tattiche sono riassunte anche nella scheda, sotto **Dove mandarla**.
 
 I colpi sono animati per un destrorso; il pulsante **Mancino** li mostra a specchio.
 

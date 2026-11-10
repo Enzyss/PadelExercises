@@ -76,6 +76,9 @@ const courtActive = () => state.court && !!EXERCISES[state.idx].court;
 function camFor(ex) {
   if (state.court && ex.court) {
     const c = structuredClone(COURT_CAMS[state.view]);
+    // the court cameras are set for a player 4 m from the net
+    const dz = ex.court.net - 4;
+    c.p[2] += dz; c.t[2] += dz;
     if (state.side === 1) { c.p[0] = -c.p[0]; c.t[0] = -c.t[0]; }
     return c;
   }

@@ -252,7 +252,8 @@ window.fitArmNear = (exId, t, target, side = 0) => {
     const pe = r.grip.distanceTo(G), de = 1 - r.dir.dot(D), fe = 1 - r.face.dot(F);
     let near = 0; for (const k of ['flex', 'abd', 'hflex', 'rot', 'elbow']) near += ((p[k] - seed[k]) / 60) ** 2;
     const comfort = (p.wflex ** 2 + p.wdev ** 2) / 1600 + Math.max(0, Math.abs(p.pron) - 50) ** 2 / 900;
-    return { cost: pe * pe * 300 + de * 8 + fe * (target.wf ?? 4) + near * (target.wn ?? 0.3) + comfort * 0.5, pe, de, fe }; };
+    const ee = target.elbow ? rig.b.RightForeArm.getWorldPosition(new THREE.Vector3()).distanceTo(new THREE.Vector3(...target.elbow)) : 0;
+    return { cost: pe * pe * 300 + ee * ee * 200 + de * 8 + fe * (target.wf ?? 4) + near * (target.wn ?? 0.3) + comfort * 0.5, pe, de, fe }; };
   const clampP = (p) => { for (const k of keys) p[k] = Math.max(RANGES[k][0], Math.min(RANGES[k][1], p[k])); return p; };
   let p = clampP({ ...seed }); let c = evalP(p).cost;
   for (const step of [16, 8, 4, 2, 1]) { let imp = true; while (imp) { imp = false; for (const k of keys) for (const dd of [step, -step]) { const q = clampP({ ...p, [k]: p[k] + dd }); const cq = evalP(q).cost; if (cq < c - 1e-6) { p = q; c = cq; imp = true; } } } }
@@ -357,3 +358,11 @@ window.showCourt = (ex, t, side = 0, shot, cam) => {
   const o = stage.court.out; const f = (v) => v.toArray().map(n => +n.toFixed(2));
   return { netY: o.netY && +o.netY.toFixed(2), events: o.events.map(e => `${e.type}@${e.t.toFixed(2)} ${f(e.p)}`), lobApex: +(stage.court.lob.O.y + stage.court.lob.v.y ** 2 / 19.62).toFixed(2) };
 };
+window.armProbe = (exId, t, overs, side = 0) => overs.map((o) => {
+  const pose = mergeOver(samplePose(byId(exId), t, side), o); const rig = stage.rig; rig.apply(pose);
+  const V = THREE.Vector3; const wp = (n) => rig.b[n].getWorldPosition(new V());
+  const seg = (p1, q1, p2, q2) => { let best = 9; for (let i = 0; i <= 20; i++) { const a = p1.clone().lerp(q1, i / 20); const ab = q2.clone().sub(p2); const tt = Math.max(0, Math.min(1, a.clone().sub(p2).dot(ab) / ab.lengthSq())); best = Math.min(best, a.distanceTo(p2.clone().addScaledVector(ab, tt))); } return best; };
+  const d = seg(wp('RightArm').lerp(wp('RightForeArm'), 0.35), wp('RightForeArm'), wp('Hips'), wp('Spine2')) - 0.16;
+  const r = rig.racketFrame('R'); const f = (v) => v.toArray().map((x) => +x.toFixed(2));
+  return `${JSON.stringify(o.R)} clr ${d.toFixed(3)} grip ${f(r.grip)} dir ${f(r.dir)} face ${f(r.face)} elbow ${f(wp('RightForeArm'))}`;
+}).join('\n');

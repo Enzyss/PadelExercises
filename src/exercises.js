@@ -488,6 +488,100 @@ const B_STEP_FWD = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: fal
 const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false },
   R: fk({ flex: 22, abd: 24, hflex: 22, rot: 5, elbow: 95, pron: -10, wdev: -8, scap: [2, 0] }) }, lerpPose(B_READY, B_TURN, 0.5));
 
+// ---------- Volée di dritto (ricostruita sul tutorial di riferimento) ----------
+const V_READY = B_READY;
+const V_SPLIT = P({ hips: { p: [0, 0.97, -0.02] }, FL: { heel: 14, y: 0.02, toeFlat: false }, FR: { heel: 14, y: 0.02, toeFlat: false } }, V_READY);
+const V_LAND = P({ hips: { p: [0, 0.93, -0.02], r: [14, 0, 0] } }, V_READY);
+const V_PREP = P({ hips: { p: [0, 0.93, -0.03], r: [14, -18, 0] }, spine: [4, -14, 0], head: [-10, 30, 0],
+  R: fk({ flex: 80, abd: 38, hflex: 51, rot: -52, elbow: 112, pron: 56, wflex: 13, wdev: -17, scap: [6, 2] }),
+  L: freeL([0.58, 0.26, 0.28], [0.4, -1, -0.3], 0, 0.15) }, V_LAND);
+const V_HIT = P({ hips: { p: [0.02, 0.9, 0.06], r: [18, -14, 0] }, spine: [6, -10, 0], head: [-14, 22, 0],
+  FL: { x: 0.2, z: 0.36, out: 8 }, FR: { heel: 12 },
+  R: fk({ flex: 27, abd: 67, hflex: 72, rot: -34, elbow: 88, pron: 35, wflex: -50, wdev: -25, scap: [4, 0] }),
+  L: freeL([0.58, 0.2, 0.24], [0.4, -1, -0.3], 0, 0.15), effort: 1 }, V_PREP);
+const V_FOLLOW = P({ hips: { p: [0.03, 0.88, 0.12], r: [20, 10, 0] }, spine: [10, 8, 0], head: [-18, -8, 0],
+  R: fk({ flex: 23, abd: 80, hflex: 83, rot: -39, elbow: 52, pron: -6, wflex: 10, wdev: -15, scap: [2, -4] }),
+  L: freeL([0.58, 0.1, 0.02], [0.4, -1, -0.1], 0, 0.15), effort: 0.5 }, V_HIT);
+// la racchetta sale di lato passando davanti, lontana dal viso
+const V_RISE = P({ R: fk({ flex: 55, abd: 25, hflex: 30, rot: -5, elbow: 85, pron: 30, wflex: 5, wdev: -12, scap: [3, 1] }) }, lerpPose(V_LAND, V_PREP, 0.5));
+// passo di scarico: dopo la preparazione il piede sinistro va avanti e porta il peso verso la palla
+const V_STEP = P({ FL: { x: 0.2, z: 0.35, y: 0.06, heel: 8, out: 8, toeFlat: false }, hips: { p: [0.01, 0.92, 0.02] } }, lerpPose(V_PREP, V_HIT, 0.35));
+const V_LIFT = P({ FL: { y: 0.04, heel: 10, toeFlat: false } }, V_FOLLOW);
+const V_BACK = P({ FL: { x: 0.24, z: 0.18, y: 0.06, heel: 8, toeFlat: false } }, lerpPose(V_FOLLOW, V_READY, 0.5));
+
+const VOLEE_FH = {
+  id: 'volee-dritto',
+  name: 'Volée di dritto a vuoto',
+  short: 'Volée dritto',
+  section: 'Colpi a vuoto',
+  sets: 2, reps: 8, unit: 'rip',
+  tempo: 'attesa · preparazione corta · impatto davanti · accompagna verso la rete',
+  dur: 3.2,
+  sided: true,
+  sideLabels: ['Destrorso', 'Mancino'],
+  handed: true,
+  equip: 'La tua racchetta, senza palla',
+  prim: ['deltAnt', 'estensori'],
+  sec: ['obliqui', 'quadricipiti', 'cuffia'],
+  why: 'La volée è il colpo con cui comandi il punto da rete. Ripeterla a vuoto fissa la preparazione corta, l\'impatto davanti e il passo che scarica il peso in avanti, e scalda spalla e avambraccio nella posizione che userai in partita.',
+  cues: [
+    'Attesa a 2-3 metri dalla rete: gambe poco più larghe delle spalle e leggermente piegate, racchetta alta davanti a te. Ti sposti verso il centro se la palla arriva dalla diagonale, verso il centro della tua metà se arriva dal lungolinea.',
+    'Preparazione: porti la racchetta di lato, all\'altezza della testa, girando appena il busto. Non superare mai la linea delle spalle.',
+    'Mano sinistra in avanti: la racchetta va verso la mano sinistra e colpisce la palla davanti al corpo.',
+    'Passo di scarico in avanti mentre colpisci: il peso va verso la palla, la racchetta accompagna in avanti verso l\'altro campo.',
+    'Rientra subito nella posizione di attesa.',
+  ],
+  errors: [
+    'Racchetta bassa in attesa, come in difesa: le palle dalle spalle in su (e bandeja e smash) diventano più difficili.',
+    'Preparazione troppo ampia, oltre la linea della spalla, per dare più forza: non fai in tempo e la palla finisce sul vetro.',
+    'Fare il passo in avanti mentre prepari: l\'impatto finisce dietro la testa. Prima prepari, poi scarichi il peso.',
+    'Volée bassa con taglio o in top spin: si alza dopo la rete, non arriva profonda e diventa comoda per gli avversari.',
+  ],
+  tactics: [
+    'Profondità prima di tutto: la palla deve rimbalzare tra la riga e il vetro, così gli avversari faticano a contrattaccare.',
+    'Direzione: soprattutto in diagonale. Hai più spazio per colpire e c\'è l\'angolo: dopo la doppia parete per loro è più difficile.',
+    'Varia: gioca nello spazio libero dove non c\'è nessuno, per far spostare uno dei due avversari.',
+    'Se la palla è abbastanza alta puoi giocarla verso la griglia: il rimbalzo sarà irregolare.',
+    'Mezza altezza: piatta per togliere tempo o con taglio per tenerli in difesa. Alta: piatta, verso lo spazio libero. Bassa: sempre piatta.',
+    'Se la palla arriva molto veloce non c\'è tempo per il passo: resta fermo con le gambe e manda avanti solo la racchetta.',
+    'Schiaffo al volo, sulla palla lenta a mezza altezza: preparazione un po\' più ampia, colpisci da dietro e cerca molta profondità. La palla rimbalza subito sul vetro e torna verso il tuo campo.',
+  ],
+  court: {
+    hit: 0.46,
+    net: 2.5,
+    lob: { from: [5.2, 0.9, 11.6], start: 0.2 },
+    shots: [
+      { id: 'diag', label: 'Diagonale profonda', color: '#3ddc84', land: [5.5, 10.9], time: 0.6, glassUp: 0.35,
+        text: 'La scelta principale: profonda, tra la riga e il vetro, e in diagonale. C\'è più spazio e c\'è l\'angolo: dopo la doppia parete per l\'avversario è più difficile.' },
+      { id: 'free', label: 'Spazio libero', color: '#4a8cff', land: [-1.3, 11.0], time: 0.55, glassUp: 0.4, flat: true,
+        text: 'Gioca dove non c\'è nessuno: qui lungolinea, per far spostare uno dei due avversari.' },
+      { id: 'grid', label: 'Alla griglia', color: '#ffc23a', land: [6.85, 6.4], time: 0.5, glassUp: 0.3, flat: true,
+        text: 'Se la palla è abbastanza alta: verso la griglia. Dopo il rimbalzo sulla rete metallica la palla esce irregolare.' },
+      { id: 'slap', label: 'Schiaffo al volo', color: '#c77dff', land: [3.6, 11.9], time: 0.42, glassUp: 1, flat: true,
+        text: 'Volée d\'attacco sulla palla lenta a mezza altezza: molto profonda, rimbalza subito sul vetro e torna verso il tuo campo, togliendo tempo agli avversari.' },
+      { id: 'short', label: 'Errore: corta', color: '#ff5233', land: [3.8, 7.0], time: 0.62, glassUp: 0.9, error: true, errorAt: 'bounce', errorLabel: 'Corta: contrattaccano',
+        text: 'Da evitare: se rimbalza prima della riga, gli avversari hanno tempo e spazio per contrattaccare e mandarti in difesa.' },
+    ],
+  },
+  props: { mat: [1.0, 1.3, 0, 0.1] },
+  cam: { p: [0.3, 1.4, 3.6], t: [0, 1.15, 0] },
+  keys: [
+    { t: 0, pose: V_READY },
+    { t: 0.06, pose: V_SPLIT, ease: 'out' },
+    { t: 0.12, pose: V_LAND, ease: 'in' },
+    { t: 0.2, pose: V_RISE, ease: 'sine' },
+    { t: 0.28, pose: V_PREP, ease: 'sine' },
+    { t: 0.36, pose: V_PREP, ease: 'lin' },
+    { t: 0.41, pose: V_STEP, ease: 'sine' },
+    { t: 0.46, pose: V_HIT, ease: 'in' },
+    { t: 0.54, pose: V_FOLLOW, ease: 'out' },
+    { t: 0.64, pose: V_FOLLOW, ease: 'lin' },
+    { t: 0.69, pose: V_LIFT, ease: 'sine' },
+    { t: 0.82, pose: V_BACK, ease: 'sine' },
+    { t: 1, pose: V_READY, ease: 'sine' },
+  ],
+};
+
 const BANDEJA = {
   id: 'bandeja',
   name: 'Bandeja a vuoto',
@@ -601,4 +695,4 @@ const SJ = {
   ],
 };
 
-export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, BANDEJA, SJ];
+export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLEE_FH, BANDEJA, SJ];
