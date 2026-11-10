@@ -107,7 +107,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; ma
 .pill[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); }
 .side { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
 .side[hidden] { display: none; }
-#court[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+#gripcam[aria-pressed="true"], #court[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 /* court mode: where the ball goes */
 .shots {
   display: grid; gap: 8px;
@@ -258,6 +258,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; ma
       <button id="speed" class="pill" type="button" aria-pressed="false" aria-label="Velocità">1×</button>
       <button id="view" class="pill" type="button" aria-label="Cambia inquadratura">Vista: consigliata</button>
       <button id="court" class="pill" type="button" aria-pressed="false" hidden>Campo e palla</button>
+      <button id="gripcam" class="pill" type="button" aria-pressed="false" hidden>Impugnatura</button>
       <div id="side" class="side" role="group" aria-label="Lato" hidden>
         <button class="pill" type="button" aria-pressed="true">Lato A</button>
         <button class="pill" type="button" aria-pressed="false">Lato B</button>
@@ -279,6 +280,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 600; text-wrap: balance; ma
       <div><dt>Ritmo</dt><dd id="tempo"></dd></div>
       <div><dt>Attrezzatura</dt><dd id="equip"></dd></div>
     </dl>
+    <div id="grip-block" class="block" hidden><h2>Impugnatura</h2><ul id="grip-cues" class="errors tactics"></ul></div>
     <div class="block"><h2>Come si fa</h2><ol id="cues" class="cues"></ol></div>
     <div id="tactics-block" class="block" hidden><h2>Dove mandarla</h2><ul id="tactics" class="errors tactics"></ul></div>
     <div class="block"><h2>Errori da evitare</h2><ul id="errors" class="errors"></ul></div>

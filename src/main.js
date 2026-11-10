@@ -26,6 +26,7 @@ const state = {
   view: 'auto',
   court: false, // ball on a padel court (strokes only)
   aim: null, // body turned towards the chosen shot (court mode)
+  gripCam: false, // close-up camera that follows the racket hand
   shot: null,
   // routine
   routine: null, // { set, rep, side, mode: 'work'|'rest'|'switch'|'done', left }
@@ -74,7 +75,15 @@ const COURT_CAMS = {
   back: { p: [1.4, 3.4, 13.4], t: [0.4, 1.3, 1.2] },
 };
 const courtActive = () => state.court && !!EXERCISES[state.idx].court;
+// close-up of the racket hand: in front of the player, a little to the side of the racket arm
+function gripCam(ex) {
+  const s = state.side === 1 ? 'L' : 'R';
+  const g = stage.rig.gripPoint(s).toArray();
+  const sg = s === 'L' ? 1 : -1;
+  return { p: [g[0] + sg * 0.32, g[1] + 0.16, g[2] + 0.72], t: g };
+}
 function camFor(ex) {
+  if (state.gripCam && ex.handed && stage.rig) return gripCam(ex);
   if (state.court && ex.court) {
     const c = structuredClone(COURT_CAMS[state.view]);
     // the court cameras are set for a player 4 m from the net
@@ -121,6 +130,10 @@ function select(i, { keepCam = false, keepSide = false } = {}) {
   $('#tactics-block').hidden = !ex.tactics;
   if (ex.tactics) $('#tactics').replaceChildren(...ex.tactics.map((c) => el('li', null, c)));
   $('#court').hidden = !ex.court;
+  $('#gripcam').hidden = !ex.handed;
+  stage.controls.minDistance = state.gripCam && ex.handed ? 0.25 : 1.2;
+  $('#grip-block').hidden = !ex.gripCues;
+  if (ex.gripCues) $('#grip-cues').replaceChildren(...ex.gripCues.map((c) => el('li', null, c)));
   const sideBox = $('#side');
   sideBox.hidden = !ex.sided;
   if (ex.sided) {
@@ -172,6 +185,29 @@ $('#view').addEventListener('click', (e) => {
   const c = camFor(EXERCISES[state.idx]);
   stage.frame(c.p, c.t);
 });
+
+// ---------- grip close-up ----------
+let lastGrip = null;
+function setGripCam(on) {
+  state.gripCam = on;
+  lastGrip = null;
+  $('#gripcam').setAttribute('aria-pressed', on ? 'true' : 'false');
+  stage.controls.minDistance = on ? 0.25 : 1.2; // the close-up sits half a metre from the hand
+  const c = camFor(EXERCISES[state.idx]);
+  stage.frame(c.p, c.t);
+}
+$('#gripcam').addEventListener('click', () => setGripCam(!state.gripCam));
+// keep the hand in frame: the camera moves with it, so the user can still orbit around it
+function followGrip(ex) {
+  if (!state.gripCam || !ex.handed) { lastGrip = null; return; }
+  const g = stage.rig.gripPoint(state.side === 1 ? 'L' : 'R');
+  if (lastGrip) {
+    const d = g.clone().sub(lastGrip);
+    if (stage.camAnim) { stage.camAnim.p.add(d); stage.camAnim.t.add(d); } // still flying in: move the destination
+    else { stage.camera.position.add(d); stage.controls.target.add(d); }
+  }
+  lastGrip = g;
+}
 
 // ---------- court: where the ball goes ----------
 function refreshCourt() {
@@ -336,6 +372,7 @@ function tick(now) {
     stage.rig.apply(pose);
     applyProps(stage, ex, pose);
     if (stage.courtOn) stage.court.update(state.phase, stage.camera.aspect);
+    followGrip(ex);
     const pulse = 0.5 + 0.5 * Math.sin(now / 260);
     stage.setEffort(Math.min(1, (pose.effort || 0) * (0.85 + 0.15 * pulse)));
   }

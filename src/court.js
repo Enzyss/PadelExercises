@@ -2,6 +2,7 @@
 // with bounces on the floor, the glass and the wire mesh.
 // World frame: player at the origin facing the net (+Z). The court is 10 x 20 m, the net at z = net.
 import * as THREE from 'three';
+import { RACKET } from './rig.js';
 
 const V3 = THREE.Vector3;
 const R_BALL = 0.033;
@@ -18,7 +19,7 @@ export function aimFor(ex, side, shot, rig, samplePose) {
     rig.apply(pose);
     const r = rig.racketFrame(pose.props.racket);
     const n = r.face.clone().multiplyScalar(r.face.z < 0 ? -1 : 1);
-    const H = r.grip.clone().addScaledVector(r.dir, 0.29);
+    const H = r.grip.clone().addScaledVector(r.dir, RACKET.headC);
     const err = (Math.atan2(L.x - H.x, L.z - H.z) - Math.atan2(n.x, n.z)) * 180 / Math.PI;
     const total = aim.yaw + aim.hflex + err;
     const yaw = Math.max(-45, Math.min(45, total * 0.7));
@@ -40,7 +41,7 @@ export function impactPoint(rig, pose) {
   rig.apply(pose);
   const r = rig.racketFrame(pose.props.racket);
   const n = r.face.clone().multiplyScalar(r.face.z < 0 ? -1 : 1);
-  return r.grip.clone().addScaledVector(r.dir, 0.29).addScaledVector(n, 0.055);
+  return r.grip.clone().addScaledVector(r.dir, RACKET.headC).addScaledVector(n, 0.055);
 }
 
 function label(text, color) {

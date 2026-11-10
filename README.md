@@ -60,9 +60,12 @@ Le animazioni non sono video: ogni ripetizione è descritta in termini anatomici
   gomito, prono-supinazione) oppure con cinematica inversa quando le mani devono
   raggiungere un punto preciso (coscia, elastico, mani unite).
 - **Colonna** distribuita su tre vertebre, collo e testa separati.
-- **Racchetta** impugnata in continental: il manico attraversa il palmo in diagonale e
-  l'orientamento della racchetta deriva da prono-supinazione e angoli del polso, sempre
-  entro i limiti anatomici.
+- **Racchetta** regolamentare (45 cm, piatto 26 cm, cuore aperto) impugnata in continental: il
+  manico attraversa il palmo in diagonale, la V tra pollice e indice sullo spigolo superiore,
+  indice un po' staccato, mignolo vicino al tappo, ogni dito appoggiato sul manico. In attesa
+  l'altra mano tiene il cuore. L'orientamento della racchetta deriva da prono-supinazione e
+  angoli del polso, sempre entro i limiti anatomici. Il pulsante **Impugnatura** segue la mano
+  da vicino durante tutto il colpo.
 
 `npm run verify` controlla 72 fotogrammi per esercizio (e per lato): corpo mai sotto il
 pavimento, piedi a terra che non si staccano né scivolano, ginocchia e gomiti entro i

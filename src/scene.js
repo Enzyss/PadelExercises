@@ -5,7 +5,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
-import { Rig } from './rig.js';
+import { Rig, RACKET } from './rig.js';
 import { Court } from './court.js';
 import { computeMuscleWeights } from './muscles.js';
 
@@ -20,13 +20,26 @@ function buildRacket() {
   const gripMat = new THREE.MeshStandardMaterial({ color: 0xe9edf2, roughness: 0.8 });
   // head: rounded "teardrop" outline, 26 cm wide, 30 cm long, 3.8 cm thick
   const shape = new THREE.Shape();
-  const W = 0.13, top = 0.43, neck = 0.15;
+  const W = RACKET.halfW, top = RACKET.top, neck = RACKET.neck;
   shape.moveTo(-0.035, neck);
   shape.bezierCurveTo(-0.09, neck + 0.02, -W, neck + 0.07, -W, neck + 0.14);
   shape.bezierCurveTo(-W, top - 0.03, -0.07, top, 0, top);
   shape.bezierCurveTo(0.07, top, W, top - 0.03, W, neck + 0.14);
   shape.bezierCurveTo(W, neck + 0.07, 0.09, neck + 0.02, 0.035, neck);
   shape.lineTo(-0.035, neck);
+  // open heart (the triangle above the throat) where the free hand holds the racket
+  const heart = (sx = 1) => {
+    const h = new THREE.Path();
+    const y0 = neck + 0.014, y1 = neck + 0.062, hw = 0.03 * sx;
+    h.moveTo(0, y0);
+    h.quadraticCurveTo(-0.012 * sx, y0 + 0.012, -hw, y1 - 0.008);
+    h.quadraticCurveTo(-hw, y1, -hw + 0.01, y1);
+    h.lineTo(hw - 0.01, y1);
+    h.quadraticCurveTo(hw, y1, hw, y1 - 0.008);
+    h.quadraticCurveTo(0.012 * sx, y0 + 0.012, 0, y0);
+    return h;
+  };
+  shape.holes.push(heart());
   const head = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.038, bevelEnabled: true, bevelThickness: 0.004, bevelSize: 0.006, bevelSegments: 2, curveSegments: 18 }), faceMat);
   head.position.z = -0.019;
   head.castShadow = true;
@@ -38,7 +51,7 @@ function buildRacket() {
   // holes pattern (dark dots) on both faces
   const dotGeo = new THREE.CircleGeometry(0.006, 10);
   const dotMat = new THREE.MeshBasicMaterial({ color: 0x0d1830 });
-  for (let y = neck + 0.05; y < top - 0.03; y += 0.032) {
+  for (let y = neck + 0.085; y < top - 0.03; y += 0.032) {
     for (let x = -0.1; x <= 0.1; x += 0.032) {
       if ((x / W) ** 2 + ((y - (neck + top) / 2) / ((top - neck) / 2)) ** 2 > 0.7) continue;
       for (const z of [0.024, -0.024]) {
@@ -49,11 +62,19 @@ function buildRacket() {
       }
     }
   }
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.017, 0.019, 0.17, 16), gripMat);
-  handle.position.y = 0.035;
+  // handle with overgrip: ~3.4 cm across, from the butt cap to the throat
+  const hl = RACKET.handleTop - (RACKET.butt + 0.01);
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.0165, 0.0175, hl, 16), gripMat);
+  handle.position.y = RACKET.butt + 0.01 + hl / 2;
   handle.castShadow = true;
-  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.012, 16), frameMat);
-  cap.position.y = -0.05;
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.0185, 0.012, 16), frameMat);
+  cap.position.y = RACKET.butt + 0.006;
+  // throat: frame arms from the handle into the head
+  const neckGeo = new THREE.CylinderGeometry(0.013, 0.017, RACKET.neck + 0.03 - RACKET.handleTop, 12);
+  const throat = new THREE.Mesh(neckGeo, frameMat);
+  throat.position.y = (RACKET.handleTop + RACKET.neck + 0.03) / 2;
+  throat.castShadow = true;
+  g.add(throat);
   g.add(head, ring, handle, cap);
   return g;
 }

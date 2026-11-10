@@ -266,8 +266,8 @@ window.racketSweep = (exId, side = 0, N = 120) => {
   const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const out = [];
   const wp = (n) => rig.b[n].getWorldPosition(new V());
   const segD = (p, a, b) => { const ab = b.clone().sub(a); const t = Math.max(0, Math.min(1, p.clone().sub(a).dot(ab) / ab.lengthSq())); return p.distanceTo(a.clone().addScaledVector(ab, t)); };
-  const local = []; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; local.push([0.13 * Math.cos(a), 0.29 + 0.14 * Math.sin(a)]); }
-  for (const y of [0.2, 0.29, 0.37]) for (const x of [-0.07, 0, 0.07]) local.push([x, y]);
+  const local = []; for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; local.push([0.13 * Math.cos(a), 0.262 + 0.143 * Math.sin(a)]); }
+  for (const y of [0.18, 0.262, 0.34]) for (const x of [-0.07, 0, 0.07]) local.push([x, y]);
   local.push([0, 0.15], [0, 0.1]);
   for (let f = 0; f < N; f++) {
     const t = f / N; const pose = samplePose(e, t, side); rig.apply(pose);
@@ -305,9 +305,9 @@ const penCount = (pose, pad = 0.01) => {
       if (attached && bn.startsWith(o + 'Hand')) continue;
       m.getVertexPosition(i, v); m.localToWorld(v);
       const d = v.clone().sub(r.grip); const y = d.dot(r.dir), x = d.dot(wx), z = d.dot(r.face);
-      if (y < 0.12 || y > 0.44 || Math.abs(z) > 0.022 + pad) continue;
-      const ex = x / (0.13 + pad), ey = (y - 0.29) / (0.14 + pad);
-      if (ex * ex + ey * ey > 1 && !(y < 0.2 && Math.abs(x) < 0.05)) continue;
+      if (y < 0.09 || y > 0.415 || Math.abs(z) > 0.022 + pad) continue;
+      const ex = x / (0.13 + pad), ey = (y - 0.262) / (0.143 + pad);
+      if (ex * ex + ey * ey > 1 && !(y < 0.17 && Math.abs(x) < 0.05)) continue;
       n++; hits[bn] = (hits[bn] || 0) + 1; (hits._y = hits._y || []).push([+x.toFixed(2), +y.toFixed(2), +z.toFixed(3)]);
     }
   }
@@ -324,8 +324,8 @@ window.penAt = (exId, t, side = 0, overs = [{}]) => overs.map(o => { const r = p
 window.racketGap = (exId, side = 0, N = 96) => {
   const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const v = new V(); const out = [];
   const meshes = []; stage.model.traverse(o => { if (o.isSkinnedMesh) meshes.push(o); });
-  const local = []; for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; local.push([0.13 * Math.cos(a), 0.29 + 0.14 * Math.sin(a)]); }
-  for (let y = 0.19; y < 0.42; y += 0.04) for (let x = -0.1; x <= 0.1; x += 0.04) if ((x / 0.13) ** 2 + ((y - 0.29) / 0.14) ** 2 < 1) local.push([x, y]);
+  const local = []; for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; local.push([0.13 * Math.cos(a), 0.262 + 0.143 * Math.sin(a)]); }
+  for (let y = 0.16; y < 0.4; y += 0.04) for (let x = -0.1; x <= 0.1; x += 0.04) if ((x / 0.13) ** 2 + ((y - 0.262) / 0.143) ** 2 < 1) local.push([x, y]);
   const one = (pose) => { rig.apply(pose); stage.model.updateMatrixWorld(true);
     const s = pose.props && pose.props.racket; if (!s) return null;
     const r = rig.racketFrame(s); const wx = new V().crossVectors(r.dir, r.face).normalize();
@@ -371,7 +371,7 @@ window.armProbe = (exId, t, overs, side = 0) => overs.map((o) => {
 window.aimCheck = (exId) => { const e = byId(exId); const out = [];
   for (const side of [0, 1]) for (const sh of e.court.shots) { const aim = aimFor(e, side, sh, stage.rig, samplePose);
     const pose = samplePose(e, e.court.hit, side, aim); stage.rig.apply(pose); const r = stage.rig.racketFrame(pose.props.racket);
-    const n = r.face.clone().multiplyScalar(r.face.z < 0 ? -1 : 1); const H = r.grip.clone().addScaledVector(r.dir, 0.29);
+    const n = r.face.clone().multiplyScalar(r.face.z < 0 ? -1 : 1); const H = r.grip.clone().addScaledVector(r.dir, 0.262);
     const tgt = Math.atan2(sh.land[0] - H.x, sh.land[1] - H.z) * 57.3, f = Math.atan2(n.x, n.z) * 57.3;
     out.push(`${side ? 'mancino ' : 'destro  '} ${sh.id.padEnd(6)} target ${tgt.toFixed(0)}° piatto ${f.toFixed(0)}° aim yaw ${aim.yaw.toFixed(0)} hflex ${aim.hflex.toFixed(0)} fine ${aim.yawF.toFixed(0)}`); }
   return out.join('\n'); };
@@ -386,3 +386,56 @@ window.aimSafety = (exId) => { const e = byId(exId); const rig = stage.rig; cons
       const b = ['LeftToeBase', 'RightToeBase'].map(wp); if (prev) ['L', 'R'].forEach((s, k) => { if (!(pose['F' + s].y > 0.001) && !prev[k].air) slide = Math.max(slide, Math.hypot(b[k].x - prev[k].p.x, b[k].z - prev[k].p.z)); }); prev = ['L', 'R'].map((s, k) => ({ p: b[k], air: pose['F' + s].y > 0.001 })); }
     out.push(`${side ? 'mancino' : 'destro '} ${sh.id.padEnd(6)} braccio-busto ${arm.toFixed(3)} racchetta-testa ${rh.toFixed(3)} gambe ${reach.toFixed(3)} scivolo ${slide.toFixed(4)}`); }
   return out.join('\n'); };
+window.handInfo = () => { const rig = stage.rig; const V = THREE.Vector3; const out = [];
+  const hand = rig.b.RightHand; const inv = hand.matrixWorld.clone().invert();
+  const names = Object.keys(rig.b).filter((n) => n.startsWith('RightHand'));
+  for (const n of names) { const p = rig.b[n].getWorldPosition(new V()).applyMatrix4(inv); out.push(`${n.padEnd(22)} local(cm) ${p.toArray().map((x) => x.toFixed(1)).join(', ')}`); }
+  const g = rig.gripPoint('R').applyMatrix4(inv); out.push('grip ' + g.toArray().map((x) => x.toFixed(1)).join(', '));
+  return out.join('\n'); };
+// keep each racket key where it was (grip, axis, face) after changing the grip: refit forearm/wrist
+window.refitGrip = (exId, twistOld = 0, extra = []) => { const e = byId(exId); const rig = stage.rig; const out = []; const seen = new Set();
+  for (const k of e.keys) { if (seen.has(k.pose)) continue; seen.add(k.pose); const base = structuredClone(k.pose); const a = base.R;
+    if (!base.props || base.props.racket !== 'R' || !a || a.mode !== 'fk') continue;
+    rig.racketTwist = twistOld; rig.apply(base); const o = rig.racketFrame('R'); const G = o.grip.clone(), D = o.dir.clone(), F = o.face.clone();
+    rig.racketTwist = undefined;
+    const keys = ['pron', 'wflex', 'wdev', 'rot', ...extra];
+    const lim = { pron: [-85, 85], wflex: [-70, 70], wdev: [-30, 25], rot: [-90, 90], elbow: [0, 140], hflex: [-40, 140], abd: [-30, 170], flex: [-60, 170] };
+    const ev = (p) => { const pose = structuredClone(base); Object.assign(pose.R, p); rig.apply(pose); const r = rig.racketFrame('R');
+      return r.grip.distanceTo(G) ** 2 * 400 + (1 - r.dir.dot(D)) * 10 + (1 - r.face.dot(F)) * 10 + ((p.rot - (a.rot || 0)) / 90) ** 2 * 0.5 + extra.reduce((acc, kk) => acc + ((p[kk] - (a[kk] || 0)) / 60) ** 2 * 0.5, 0) + (Math.max(0, Math.abs(p.wflex) - 45) / 30) ** 2; };
+    let p = { pron: a.pron || 0, wflex: a.wflex || 0, wdev: a.wdev || 0, rot: a.rot || 0 }; for (const kk of extra) p[kk] = a[kk] || 0; let c = ev(p);
+    for (const st of [16, 8, 4, 2, 1, 0.5]) { let imp = true; while (imp) { imp = false; for (const kk of keys) for (const d of [st, -st]) { const q = { ...p, [kk]: Math.max(lim[kk][0], Math.min(lim[kk][1], p[kk] + d)) }; const cq = ev(q); if (cq < c - 1e-7) { p = q; c = cq; imp = true; } } } }
+    const pose = structuredClone(base); Object.assign(pose.R, p); rig.apply(pose); const r = rig.racketFrame('R');
+    out.push(`t=${k.t} old {pron:${a.pron || 0}, wflex:${a.wflex || 0}, wdev:${a.wdev || 0}, rot:${a.rot || 0}} -> ${JSON.stringify(Object.fromEntries(Object.entries(p).map(([k, v]) => [k, Math.round(v)])))} err pos ${(r.grip.distanceTo(G) * 100).toFixed(1)}cm dir ${(Math.acos(Math.min(1, r.dir.dot(D))) * 57.3).toFixed(0)}° face ${(Math.acos(Math.min(1, r.face.dot(F))) * 57.3).toFixed(0)}°`); }
+  rig.racketTwist = undefined; return out.join('\n'); };
+// fit finger curls (and the thumb) so that every finger wraps the handle: segments on the handle surface
+window.fitFingers = (exId = 'volee-dritto', t = 0, s = 'R') => { const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const Qt = THREE.Quaternion;
+  const pose = samplePose(e, t, s === 'R' ? 0 : 1); rig.apply(pose);
+  const side = s === 'L' ? 'Left' : 'Right'; const sg = s === 'L' ? 1 : -1;
+  const r = rig.racketFrame(s); const C = r.grip.clone(), A = r.dir.clone();
+  const target = 0.0172 + 0.0085; // handle radius + finger radius
+  const dAx = (p) => { const v = p.clone().sub(C); const along = v.dot(A); return { d: v.addScaledVector(A, -along).length(), along }; };
+  const bone = (n) => rig.b[`${side}Hand${n}`];
+  const wp = (n) => bone(n).getWorldPosition(new V());
+  const ax = new V(0, 0, -sg); const out = {};
+  for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) { let best = null;
+    for (let m = 0; m <= 100; m += 5) for (let p = 0; p <= 110; p += 5) for (let d = 0; d <= 80; d += 5) {
+      bone(f + 1).quaternion.copy(new Qt().setFromAxisAngle(ax, m * DEGR)); bone(f + 2).quaternion.copy(new Qt().setFromAxisAngle(ax, p * DEGR)); bone(f + 3).quaternion.copy(new Qt().setFromAxisAngle(ax, d * DEGR));
+      bone(f + 1).updateMatrixWorld(true);
+      const pts = [1, 2, 3, 4].map((i) => wp(f + i)); let c = 0;
+      for (let i = 0; i < 3; i++) for (const u of [0, 0.5, 1]) { if (i === 0 && u === 0) continue; const q = pts[i].clone().lerp(pts[i + 1], u); const { d: dd } = dAx(q); const err = dd - target; c += err < 0 ? err * err * 30 : err * err; }
+      c += ((p - 1.2 * d) / 100) ** 2 * 0.0004; // DIP follows PIP
+      if (!best || c < best.c) best = { c, m, p, d }; }
+    out[f] = [best.m, best.p, best.d, +(Math.sqrt(best.c / 8) * 100).toFixed(2)];
+    bone(f + 1).quaternion.copy(new Qt().setFromAxisAngle(ax, best.m * DEGR)); bone(f + 2).quaternion.copy(new Qt().setFromAxisAngle(ax, best.p * DEGR)); bone(f + 3).quaternion.copy(new Qt().setFromAxisAngle(ax, best.d * DEGR)); bone(f + 1).updateMatrixWorld(true); }
+  // thumb: Euler on Thumb1, flexion on Thumb2/3 about their local Z; tip towards the middle phalanx of the middle finger
+  const mid = wp('Middle2').lerp(wp('Middle3'), 0.5); let best = null;
+  for (let x = -60; x <= 60; x += 10) for (let y = -60; y <= 60; y += 10) for (let z = -60; z <= 60; z += 10) for (let f2 = 0; f2 <= 70; f2 += 10) {
+    bone('Thumb1').quaternion.setFromEuler(new THREE.Euler(x * DEGR, y * DEGR, z * DEGR)); const qf = new Qt().setFromAxisAngle(new V(0, 0, 1), -sg * f2 * DEGR); bone('Thumb2').quaternion.copy(qf); bone('Thumb3').quaternion.copy(qf);
+    bone('Thumb1').updateMatrixWorld(true);
+    const pts = [1, 2, 3, 4].map((i) => wp('Thumb' + i)); let c = 0;
+    for (let i = 1; i < 3; i++) for (const u of [0, 0.5, 1]) { const q = pts[i].clone().lerp(pts[i + 1], u); const { d: dd } = dAx(q); const err = dd - target; c += err < 0 ? err * err * 30 : err * err; }
+    c += pts[3].distanceTo(mid) ** 2 * 0.3;
+    if (!best || c < best.c) best = { c, x, y, z, f2 }; }
+  out.Thumb = [best.x, best.y, best.z, best.f2, +(Math.sqrt(best.c / 6) * 100).toFixed(2)];
+  return JSON.stringify(out); };
+const DEGR = Math.PI / 180;

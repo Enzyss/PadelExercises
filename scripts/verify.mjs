@@ -62,8 +62,8 @@ const res = await page.evaluate(() => {
           // whole head of the racket: rim (26 x 28 cm) plus its long axis
           const wx = new THREE_V().crossVectors(r.dir, r.face).normalize();
           const at = (x, y) => r.grip.clone().addScaledVector(r.dir, y).addScaledVector(wx, x);
-          const segs = [[at(0, 0.16), at(0, 0.42)]];
-          for (let k = 0; k < 16; k++) { const a0 = k / 16 * Math.PI * 2, a1 = (k + 1) / 16 * Math.PI * 2; segs.push([at(0.13 * Math.cos(a0), 0.29 + 0.14 * Math.sin(a0)), at(0.13 * Math.cos(a1), 0.29 + 0.14 * Math.sin(a1))]); }
+          const segs = [[at(0, 0.13), at(0, 0.4)]];
+          for (let k = 0; k < 16; k++) { const a0 = k / 16 * Math.PI * 2, a1 = (k + 1) / 16 * Math.PI * 2; segs.push([at(0.13 * Math.cos(a0), 0.262 + 0.143 * Math.sin(a0)), at(0.13 * Math.cos(a1), 0.262 + 0.143 * Math.sin(a1))]); }
           const other = rs === 'L' ? 'Right' : 'Left';
           const freeArm = !(pose[rs === 'L' ? 'R' : 'L'] && pose[rs === 'L' ? 'R' : 'L'].attachW > 0.05);
           for (const [h0, h1] of segs) {

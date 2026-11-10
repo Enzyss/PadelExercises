@@ -453,7 +453,7 @@ const LIFT = {
 const fk = (o) => ({ mode: 'fk', flex: 0, abd: 0, hflex: 0, rot: 0, elbow: 90, pron: 0, wflex: 0, wdev: 0, grip: 1, ...o });
 // free (left) hand: chest-space target, blended onto the racket throat by attachW
 const freeL = (t, hint, attachW = 0, grip = 0.3) => ({ mode: 'ik', t, hint, attachW, grip, pron: 10 });
-const throat = freeL([0.02, -0.16, 0.3], [0.7, -1, -0.3], 1, 0.5);
+const throat = freeL([0.02, -0.16, 0.3], [0.7, -1, -0.3], 1, 0.85);
 const R_READY = { mode: 'ik', space: 'world', t: [-0.131, 1.092, 0.296], hint: [-0.4, -1, -0.2], pron: -9, wflex: -8, wdev: 20, grip: 1 };
 const NET = P({
   hips: { p: [0, 0.95, -0.02], r: [12, 0, 0] },
@@ -472,33 +472,33 @@ const NET = P({
 // e sopra la spalla destra, accompagnamento in avanti verso sinistra, rientro).
 // Il braccio della racchetta è in angoli articolari (FK): tra una fase e l'altra
 // le articolazioni ruotano in modo continuo, senza scorciatoie davanti al viso.
-const B_READY = P({ R: fk({ flex: 30, abd: 18, rot: 40, elbow: 105, pron: 0, wflex: 0, wdev: 0 }) }, NET);
+const B_READY = P({ R: fk({ flex: 30, abd: 18, rot: 49, elbow: 105, pron: 27, wflex: -36, wdev: -9 }) }, NET);
 const B_TURN = P({
   hips: { p: [0, 0.96, -0.06], r: [8, -55, 0] }, spine: [2, -15, 0], head: [-6, 50, 0],
   FL: { x: 0.24, z: 0, out: -45 },
   FR: { x: -0.1, z: -0.34, out: 72 },
-  R: fk({ flex: 15, abd: 30, hflex: 45, rot: -30, elbow: 120, pron: -20, wdev: -15, scap: [4, 0] }),
-  L: freeL([0.02, -0.1, 0.3], [0.7, -1, -0.3], 1, 0.5),
+  R: fk({ flex: 15, abd: 30, hflex: 45, rot: -21, elbow: 120, pron: 12, wflex: -30, wdev: -17, scap: [4, 0] }),
+  L: freeL([0.02, -0.1, 0.3], [0.7, -1, -0.3], 1, 0.85),
 }, B_READY);
 const B_PREP = P({
   hips: { p: [0, 0.97, -0.12], r: [6, -62, 0] }, spine: [0, -18, 0], head: [-14, 58, 0],
   FL: { x: 0.24, z: 0, out: -50 },
   FR: { x: -0.1, z: -0.34, out: 74 },
-  R: fk({ flex: 0, abd: 100, hflex: 20, rot: -65, elbow: 100, pron: -55, wflex: -10, wdev: -25, scap: [12, 4] }),
+  R: fk({ flex: 0, abd: 100, hflex: 20, rot: -60, elbow: 105, pron: -24, wflex: -32, wdev: -30, scap: [12, 4] }),
   L: freeL([0.3, 0.55, 0.28], [0.6, -0.4, -0.6], 0, 0.15),
 }, B_TURN);
-const B_LOOP = P({ R: fk({ flex: 0, abd: 110, hflex: 35, rot: -85, elbow: 110, pron: -60, wflex: -30, wdev: -20, scap: [14, 6] }) }, B_PREP);
+const B_LOOP = P({ R: fk({ flex: 0, abd: 112, hflex: 31, rot: -81, elbow: 112, pron: -34, wflex: -49, wdev: -30, scap: [14, 6] }) }, B_PREP);
 const B_HIT = P({
   hips: { p: [0.02, 0.98, -0.04], r: [4, -38, 0] }, spine: [0, -4, 0], head: [-16, 38, 0],
   FR: { heel: 22 },
-  R: fk({ flex: 0, abd: 130, hflex: 90, rot: -20, elbow: 15, pron: -20, wdev: -20, scap: [14, 0] }),
+  R: fk({ flex: 0, abd: 130, hflex: 90, rot: 0, elbow: 20, pron: -8, wflex: -24, wdev: -30, scap: [14, 0] }),
   L: freeL([0.18, 0.05, 0.3], [0.8, -1, -0.3], 0, 0.3),
   effort: 1,
 }, B_PREP);
 const B_FOLLOW = P({
   hips: { p: [0.05, 0.96, 0.04], r: [8, -18, 0] }, spine: [6, 6, 0], head: [-10, 12, 0],
   FR: { heel: 36 },
-  R: fk({ flex: 0, abd: 75, hflex: 100, rot: 0, elbow: 25, pron: -20, scap: [4, -6] }),
+  R: fk({ flex: 0, abd: 75, hflex: 100, rot: 16, elbow: 25, pron: -16, wflex: -33, wdev: 2, scap: [4, -6] }),
   L: freeL([0.12, -0.02, 0.24], [0.8, -1, -0.2], 0, 0.3),
   effort: 0.5,
 }, B_HIT);
@@ -506,24 +506,34 @@ const B_FOLLOW = P({
 const B_STEP_FWD = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_FOLLOW, B_READY, 0.5));
 // racket kept a hand's width in front of the face while the shoulders turn
 const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false },
-  R: fk({ flex: 22, abd: 24, hflex: 22, rot: 5, elbow: 95, pron: -10, wdev: -8, scap: [2, 0] }) }, lerpPose(B_READY, B_TURN, 0.5));
+  R: fk({ flex: 22, abd: 24, hflex: 22, rot: 13, elbow: 95, pron: 16, wflex: -33, wdev: -13, scap: [2, 0] }) }, lerpPose(B_READY, B_TURN, 0.5));
+
+// continental grip, shared by all the strokes
+const GRIP_CUES = [
+  'Continental: la stessa impugnatura per volée, bandeja, vibora e smash. Non la cambi tra dritto e rovescio.',
+  'Per trovarla tieni la racchetta di taglio, con il bordo verso l\'alto, e prendila come un martello: la V tra pollice e indice sta sullo spigolo superiore del manico.',
+  'Il fondo del manico resta nel palmo, vicino al tallone della mano. Sopra l\'indice rimane un po\' di manico libero.',
+  'Indice leggermente staccato dalle altre dita, lungo il manico come sul grilletto: dà controllo al piatto.',
+  'Stretta morbida in attesa, più ferma solo all\'impatto. Una presa sempre stretta irrigidisce polso e gomito.',
+  'In attesa l\'altra mano tiene la racchetta dal cuore: la porta su nella preparazione e lascia la mano forte rilassata.',
+];
 
 // ---------- Volée di dritto (ricostruita sul tutorial di riferimento) ----------
 const V_READY = B_READY;
 const V_SPLIT = P({ hips: { p: [0, 0.97, -0.02] }, FL: { heel: 14, y: 0.02, toeFlat: false }, FR: { heel: 14, y: 0.02, toeFlat: false } }, V_READY);
 const V_LAND = P({ hips: { p: [0, 0.93, -0.02], r: [14, 0, 0] } }, V_READY);
 const V_PREP = P({ hips: { p: [0, 0.93, -0.03], r: [14, -24, 0] }, spine: [4, -22, 0], head: [-10, 42, 0],
-  R: fk({ flex: 80, abd: 38, hflex: 51, rot: -52, elbow: 112, pron: 56, wflex: 13, wdev: -17, scap: [6, 2] }),
+  R: fk({ flex: 85, abd: 38, hflex: 59, rot: -52, elbow: 108, pron: 85, wflex: -15, wdev: -7, scap: [6, 2] }),
   L: freeL([0.58, 0.26, 0.28], [0.4, -1, -0.3], 0, 0.15) }, V_LAND);
 const V_HIT = P({ hips: { p: [0.02, 0.9, 0.06], r: [18, -6, 0] }, spine: [6, -4, 0], head: [-14, 14, 0],
   FL: { x: 0.2, z: 0.36, out: 8 }, FR: { heel: 12 },
-  R: fk({ flex: 27, abd: 67, hflex: 72, rot: -34, elbow: 88, pron: 35, wflex: -50, wdev: -25, scap: [4, 0] }),
+  R: fk({ flex: 48, abd: 58, hflex: 83, rot: -41, elbow: 82, pron: 82, wflex: -53, wdev: -30, scap: [4, 0] }),
   L: freeL([0.58, 0.2, 0.24], [0.4, -1, -0.3], 0, 0.15), effort: 1 }, V_PREP);
 const V_FOLLOW = P({ hips: { p: [0.03, 0.88, 0.12], r: [20, 18, 0] }, spine: [10, 16, 0], head: [-18, -14, 0],
-  R: fk({ flex: 23, abd: 80, hflex: 83, rot: -39, elbow: 52, pron: -6, wflex: 10, wdev: -15, scap: [2, -4] }),
+  R: fk({ flex: 23, abd: 80, hflex: 83, rot: -29, elbow: 52, pron: 15, wflex: -20, wdev: -16, scap: [2, -4] }),
   L: freeL([0.58, 0.1, 0.02], [0.4, -1, -0.1], 0, 0.15), effort: 0.5 }, V_HIT);
 // la racchetta sale di lato passando davanti, lontana dal viso
-const V_RISE = P({ R: fk({ flex: 55, abd: 25, hflex: 30, rot: -5, elbow: 85, pron: 30, wflex: 5, wdev: -12, scap: [3, 1] }) }, lerpPose(V_LAND, V_PREP, 0.5));
+const V_RISE = P({ R: fk({ flex: 55, abd: 25, hflex: 30, rot: 3, elbow: 85, pron: 57, wflex: -19, wdev: -24, scap: [3, 1] }) }, lerpPose(V_LAND, V_PREP, 0.5));
 // passo di scarico: dopo la preparazione il piede sinistro va avanti e porta il peso verso la palla
 const V_STEP = P({ FL: { x: 0.2, z: 0.35, y: 0.06, heel: 8, out: 8, toeFlat: false }, hips: { p: [0.01, 0.92, 0.02] } }, lerpPose(V_PREP, V_HIT, 0.35));
 const V_LIFT = P({ FL: { y: 0.04, heel: 10, toeFlat: false } }, V_FOLLOW);
@@ -541,6 +551,7 @@ const VOLEE_FH = {
   sideLabels: ['Destrorso', 'Mancino'],
   handed: true,
   equip: 'La tua racchetta, senza palla',
+  gripCues: GRIP_CUES,
   prim: ['deltAnt', 'estensori'],
   sec: ['obliqui', 'quadricipiti', 'cuffia'],
   why: 'La volée è il colpo con cui comandi il punto da rete. Ripeterla a vuoto fissa la preparazione corta, l\'impatto davanti e il passo che scarica il peso in avanti, e scalda spalla e avambraccio nella posizione che userai in partita.',
@@ -615,6 +626,7 @@ const BANDEJA = {
   sideLabels: ['Destrorso', 'Mancino'],
   handed: true,
   equip: 'La tua racchetta, senza palla',
+  gripCues: GRIP_CUES,
   prim: ['deltAnt', 'cuffia'],
   sec: ['obliqui', 'tricipiti', 'estensori'],
   why: 'La bandeja ("vassoio") si gioca sui pallonetti che non ti scavalcano e che non riesci a schiacciare. Serve a difendere la rete: tieni gli avversari dietro e rientri a rete il prima possibile. Ripeterla a vuoto fissa la sequenza giusta e scalda la spalla nella posizione che userai in partita.',

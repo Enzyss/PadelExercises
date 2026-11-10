@@ -5,6 +5,28 @@
 import * as THREE from 'three';
 
 export const DEG = Math.PI / 180;
+
+// Padel racket (max 45.5 cm by the rules), measured from the centre of the closed hand along the
+// handle: butt cap just past the heel of the hand, ~2-3 cm of free handle above the index finger,
+// open throat, head 26 cm wide.
+// finger curls (MCP, PIP, DIP) and thumb (Euler of the 1st bone for the right hand, then flexion of
+// the 2nd and 3rd) that put each finger on the handle surface; fitted with dev fitFingers()
+const RACKET_FINGERS = { Index: [15, 75, 55], Middle: [60, 65, 50], Ring: [70, 55, 40], Pinky: [85, 50, 35] };
+const RACKET_THUMB = [20, -50, -40, 30];
+
+export const RACKET = {
+  butt: -0.05, // end of the butt cap
+  handleTop: 0.075, // top of the handle (overgrip)
+  throat: 0.13, // where the free hand holds it in the ready position (the open heart of the racket)
+  neck: 0.095, // start of the head outline
+  top: 0.405, // tip of the head
+  headC: 0.262, // centre of the hitting area
+  halfL: 0.143, // half length of the head
+  halfW: 0.13, // half width of the head
+  // continental grip: the racket face is turned ~35° from the palm (palm on the 2nd bevel,
+  // V between thumb and index on the top edge of the handle)
+  twist: 35,
+};
 const V3 = THREE.Vector3;
 const Q = THREE.Quaternion;
 
@@ -189,7 +211,7 @@ export class Rig {
       if (a.mode === 'ik' && a.attachW > 0 && this.racketSide) {
         // free hand blends between its own target and the racket throat
         const r = this.racketFrame(this.racketSide);
-        const throat = r.grip.clone().addScaledVector(r.dir, 0.155).addScaledVector(r.face, 0.02);
+        const throat = r.grip.clone().addScaledVector(r.dir, RACKET.throat).addScaledVector(r.face, 0.02);
         const t = toW(a.t).lerp(throat, Math.min(1, a.attachW));
         info = this.solveIK(L, t, toWd(a.hint || [sg * 0.3, -0.4, -1]));
       } else if (a.mode === 'ik') {
@@ -211,7 +233,7 @@ export class Rig {
       }
       if (a.racket) {
         Object.assign(info, this.orientRacketHand(s, L, a.racket, toWd));
-        this.grip(s, a.grip == null ? 1 : a.grip);
+        this.grip(s, a.grip == null ? 1 : a.grip, pose.props && pose.props.racket === s);
         this.state.arms[s] = info;
         continue;
       }
@@ -230,7 +252,7 @@ export class Rig {
         .multiply(axisQ(flexAxis, (a.wflex || 0) * DEG))
         .multiply(axisQ(devAxis, (a.wdev || 0) * DEG));
       hand.updateMatrixWorld(true);
-      this.grip(s, a.grip == null ? 0.15 : a.grip);
+      this.grip(s, a.grip == null ? 0.15 : a.grip, pose.props && pose.props.racket === s);
       this.state.arms[s] = info;
     }
     this.root.updateMatrixWorld(true);
@@ -244,7 +266,7 @@ export class Rig {
     const sg = s === 'L' ? 1 : -1;
     const dir = toWd(r.dir).normalize();
     const face = toWd(r.face);
-    const Qh = new Q().setFromRotationMatrix(basis(dir, face).multiply(basis(this.racketAxis(s), new V3(0, -1, 0)).transpose()));
+    const Qh = new Q().setFromRotationMatrix(basis(dir, face).multiply(basis(this.racketAxis(s), this.racketFaceLocal(s)).transpose()));
     const fq = L.m.getWorldQuaternion(new Q());
     const rel = fq.clone().invert().multiply(Qh); // hand local
     const axis = new V3(sg, 0, 0);
@@ -280,21 +302,49 @@ export class Rig {
     return new V3(sg * Math.sin(a), 0, Math.cos(a));
   }
 
+  // racket face normal in hand space: the palm normal (-Y) turned about the handle by the
+  // continental twist (towards the back of the hand on the thumb side)
+  racketFaceLocal(s) {
+    const sg = s === 'L' ? 1 : -1;
+    const tw = this.racketTwist ?? RACKET.twist;
+    return new V3(0, -1, 0).applyQuaternion(axisQ(this.racketAxis(s), -sg * tw * DEG));
+  }
+
   // racket frame from the hand holding it
   racketFrame(s) {
     const q = this.handFrame(s);
     return {
       grip: this.gripPoint(s),
       dir: this.racketAxis(s).applyQuaternion(q),
-      face: new V3(0, -1, 0).applyQuaternion(q),
+      face: this.racketFaceLocal(s).applyQuaternion(q),
       q,
     };
   }
 
-  grip(s, g) {
+  grip(s, g, racket = false) {
     const side = s === 'L' ? 'Left' : 'Right';
     const sg = s === 'L' ? 1 : -1;
     const ax = new V3(0, 0, -sg);
+    if (racket) {
+      // continental grip fitted on the handle: every finger lies on the overgrip. The index is
+      // a little spread along the handle ("trigger"), the pinky closes most, near the butt cap;
+      // the thumb wraps the other side and rests against the middle finger.
+      for (const [f, angs] of Object.entries(RACKET_FINGERS)) {
+        angs.forEach((deg, i) => {
+          const bone = this.b[`${side}Hand${f}${i + 1}`];
+          if (bone) bone.quaternion.copy(axisQ(ax, g * deg * DEG));
+        });
+      }
+      const [tx, ty, tz, tf] = RACKET_THUMB;
+      const t1 = this.b[`${side}HandThumb1`];
+      if (t1) t1.quaternion.setFromEuler(new THREE.Euler(g * tx * DEG, -sg * g * ty * DEG, -sg * g * tz * DEG));
+      for (const n of ['Thumb2', 'Thumb3']) {
+        const b = this.b[`${side}Hand${n}`];
+        if (b) b.quaternion.copy(axisQ(AX.z, -sg * g * tf * DEG));
+      }
+      this.b[`${side}Hand`].updateMatrixWorld(true);
+      return;
+    }
     for (const f of ['Index', 'Middle', 'Ring', 'Pinky']) {
       [70, 85, 55].forEach((deg, i) => {
         const bone = this.b[`${side}Hand${f}${i + 1}`];
