@@ -439,3 +439,69 @@ window.fitFingers = (exId = 'volee-dritto', t = 0, s = 'R') => { const e = byId(
   out.Thumb = [best.x, best.y, best.z, best.f2, +(Math.sqrt(best.c / 6) * 100).toFixed(2)];
   return JSON.stringify(out); };
 const DEGR = Math.PI / 180;
+// body metrics in the same convention as the video pose analysis (x = left, y = up, z = net)
+window.bodyMetrics = (exId, ts, side = 0, aim = null) => { const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const out = [];
+  const wp = (n) => rig.b[n].getWorldPosition(new V());
+  const yaw = (v) => Math.atan2(v.z, v.x) * 57.3; const ang = (a, b) => Math.acos(Math.max(-1, Math.min(1, a.dot(b) / a.length() / b.length()))) * 57.3;
+  out.push(' t     hipYaw shYaw  lean  RelbH  RwrH  Relb  RuaUp RuaOut RuaFwd | LuaUp Lelb | kneeL kneeR  stance');
+  for (const t of ts) { const pose = samplePose(e, t, side, aim); rig.apply(pose);
+    const hipL = wp('LeftUpLeg'), hipR = wp('RightUpLeg'), shL = wp('LeftArm'), shR = wp('RightArm');
+    const hm = hipL.clone().add(hipR).multiplyScalar(0.5), sm = shL.clone().add(shR).multiplyScalar(0.5), tr = sm.clone().sub(hm);
+    const lean = Math.atan2(tr.z, tr.y) * 57.3;
+    const ua = wp('RightForeArm').sub(shR), fa = wp('RightHand').sub(wp('RightForeArm')), lua = wp('LeftForeArm').sub(shL), lfa = wp('LeftHand').sub(wp('LeftForeArm'));
+    const X = shL.clone().sub(shR).normalize(); const Y = tr.clone().addScaledVector(X, -tr.dot(X)).normalize(); const Z = new V().crossVectors(X, Y);
+    const u = ua.clone().normalize(), lu = lua.clone().normalize();
+    const kn = (a, k, f) => 180 - ang(wp(a).sub(wp(k)), wp(f).sub(wp(k)));
+    const st = Math.hypot(wp('LeftFoot').x - wp('RightFoot').x, wp('LeftFoot').z - wp('RightFoot').z);
+    const f = (x, n = 0, w = 6) => x.toFixed(n).padStart(w);
+    out.push(`${t.toFixed(2)} ${f(yaw(hipL.clone().sub(hipR)))} ${f(yaw(shL.clone().sub(shR)))} ${f(lean, 0, 5)} ${f(wp('RightForeArm').y - shR.y, 2)} ${f(wp('RightHand').y - shR.y, 2, 5)} ${f(180 - ang(ua.clone().negate(), fa), 0, 5)} ${f(u.dot(Y), 2)} ${f(-u.dot(X), 2)} ${f(u.dot(Z), 2)} | ${f(lu.dot(Y), 2, 5)} ${f(180 - ang(lua.clone().negate(), lfa), 0, 4)} | ${f(kn('LeftUpLeg', 'LeftLeg', 'LeftFoot'), 0, 4)} ${f(kn('RightUpLeg', 'RightLeg', 'RightFoot'), 0, 5)} ${f(st, 2)}`); }
+  return out.join('\n'); };
+// retarget a key onto segment directions measured on the reference video (world, x = left, y = up, z = net)
+window.fitBody = (exId, t, tgt, opt = {}) => { const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3;
+  const base = structuredClone(opt.pose || samplePose(e, t, 0)); if (opt.over) mergeOver(base, opt.over); const wp = (n) => rig.b[n].getWorldPosition(new V());
+  const dirs = () => { const m = (a, b) => wp(a).add(wp(b)).multiplyScalar(0.5); const d = (a, b) => b.sub(a).normalize();
+    return { pelvis: d(wp('RightUpLeg'), wp('LeftUpLeg')), shoulders: d(wp('RightArm'), wp('LeftArm')), trunk: d(m('LeftUpLeg', 'RightUpLeg'), m('LeftArm', 'RightArm')),
+      Rua: d(wp('RightArm'), wp('RightForeArm')), Rfa: d(wp('RightForeArm'), wp('RightHand')), Lua: d(wp('LeftArm'), wp('LeftForeArm')), Lfa: d(wp('LeftForeArm'), wp('LeftHand')),
+      Lth: d(wp('LeftUpLeg'), wp('LeftLeg')), Lsh: d(wp('LeftLeg'), wp('LeftFoot')), Rth: d(wp('RightUpLeg'), wp('RightLeg')), Rsh: d(wp('RightLeg'), wp('RightFoot')) }; };
+  const W = { pelvis: 2, shoulders: 3, trunk: 3, Rua: 4, Rfa: 4, Lua: 2, Lfa: 2, Lth: 1, Lsh: 1, Rth: 1, Rsh: 1, ...(opt.w || {}) };
+  const T = Object.fromEntries(Object.entries(tgt).filter(([k]) => k in W).map(([k, v]) => [k, new V(...v).normalize()]));
+  const R0 = base.R; const L0 = base.L;
+  const spec = [['hp', 1, () => base.hips.r[0]], ['hy', 1, () => base.hips.r[1]], ['hr', 1, () => base.hips.r[2]], ['sp', 1, () => base.spine[0]], ['sy', 1, () => base.spine[1]], ['sr', 1, () => base.spine[2] || 0],
+    ['px', 0.01, () => base.hips.p[0]], ['py', 0.01, () => base.hips.p[1]], ['pz', 0.01, () => base.hips.p[2]],
+    ['flex', 1, () => R0.flex], ['abd', 1, () => R0.abd], ['hflex', 1, () => R0.hflex], ['rot', 1, () => R0.rot], ['elbow', 1, () => R0.elbow]];
+  if (opt.left !== false && L0.mode === 'ik' && !(L0.attachW > 0)) spec.push(['lx', 0.01, () => L0.t[0]], ['ly', 0.01, () => L0.t[1]], ['lz', 0.01, () => L0.t[2]]);
+  if (opt.step) spec.push(['flx', 0.01, () => base.FL.x], ['flz', 0.01, () => base.FL.z]);
+  if (opt.feet) spec.push(['flx', 0.01, () => base.FL.x], ['flz', 0.01, () => base.FL.z], ['frx', 0.01, () => base.FR.x], ['frz', 0.01, () => base.FR.z]);
+  if (tgt.racket) spec.push(['pron', 1, () => R0.pron || 0], ['wflex', 1, () => R0.wflex || 0], ['wdev', 1, () => R0.wdev || 0]);
+  for (const k of (opt.fix || [])) { const i = spec.findIndex((s) => s[0] === k); if (i >= 0) spec.splice(i, 1); }
+  const p0 = Object.fromEntries(spec.map(([k, , g]) => [k, g()]));
+  const mk = (p) => { const pose = structuredClone(base); pose.hips = { ...pose.hips, r: [p.hp, p.hy, p.hr], p: [p.px, p.py, p.pz] }; pose.spine = [p.sp, p.sy, p.sr];
+    pose.R = { ...pose.R, flex: p.flex, abd: p.abd, hflex: p.hflex, rot: p.rot, elbow: p.elbow };
+    if ('pron' in p) Object.assign(pose.R, { pron: p.pron, wflex: p.wflex, wdev: p.wdev });
+    if ('lx' in p) pose.L = { ...pose.L, t: [p.lx, p.ly, p.lz] };
+    if ('flx' in p) pose.FL = { ...pose.FL, x: p.flx, z: p.flz };
+    if ('frx' in p) pose.FR = { ...pose.FR, x: p.frx, z: p.frz };
+    return pose; };
+  const fill = (p) => ({ ...p0, ...p });
+  const ev = (p) => { const pose = mk(fill(p)); rig.apply(pose); const D = dirs(); let c = 0; const err = {};
+    for (const k in T) { const a = Math.acos(Math.max(-1, Math.min(1, D[k].dot(T[k])))) * 57.3; err[k] = Math.round(a); c += W[k] * (1 - D[k].dot(T[k])); }
+    for (const s of ['L', 'R']) c += rig.state.legs[s].reachError * 50;
+    if (tgt.racket) { const r = rig.racketFrame('R'); const rd = new V(...tgt.racket.dir).normalize(), rf = new V(...tgt.racket.face); rf.addScaledVector(rd, -rf.dot(rd)).normalize();
+      err.rdir = Math.round(Math.acos(Math.min(1, r.dir.dot(rd))) * 57.3); err.rface = Math.round(Math.acos(Math.max(-1, Math.min(1, r.face.dot(rf)))) * 57.3);
+      c += (1 - r.dir.dot(rd)) * (tgt.racket.wd ?? 4) + (1 - r.face.dot(rf)) * (tgt.racket.wf ?? 2.5);
+      c += ((p.wflex ** 2 + p.wdev ** 2) / 1600 + Math.max(0, Math.abs(p.pron) - 60) ** 2 / 900) * 0.4 + Math.max(0, p.wdev - 28) ** 2 * 0.02 + Math.max(0, -25 - p.wdev) ** 2 * 0.02 + Math.max(0, Math.abs(p.wflex) - 60) ** 2 * 0.02 + Math.max(0, Math.abs(p.pron) - 85) ** 2 * 0.02; }
+    c += ((p.sr || 0) ** 2 + (p.hr || 0) ** 2) / 900 * 0.02 + Math.max(0, (p.elbow ?? 0) - 135) ** 2 * 0.01;
+    c += (((p.hp - p0.hp) / 20) ** 2 + ((p.sp - p0.sp) / 20) ** 2 + ((p.hp - p.sp * 0.6 - 4) / 25) ** 2) * (opt.reg ?? 0.05);
+    return { c, err }; };
+  const lim = { flex: [-40, 180], abd: [-30, 170], hflex: [-40, 140], rot: [-90, 90], elbow: [0, 145], pron: [-90, 90], wflex: [-70, 70], wdev: [-30, 30] };
+  let p = { ...p0 }; let c = ev(p).c;
+  for (const st of [16, 8, 4, 2, 1, 0.5]) { let imp = true; while (imp) { imp = false; for (const [k, sc] of spec) for (const dd of [st, -st]) { const q = { ...p, [k]: p[k] + dd * sc }; if (lim[k]) q[k] = Math.max(lim[k][0], Math.min(lim[k][1], q[k])); const cq = ev(q).c; if (cq < c - 1e-7) { p = q; c = cq; imp = true; } } } }
+  const r = ev(p); const rd = (x, n = 0) => +x.toFixed(n);
+  const res = { hips: { p: [rd(p.px, 3), rd(p.py, 3), rd(p.pz, 3)], r: [rd(p.hp), rd(p.hy), rd(p.hr)] }, spine: [rd(p.sp), rd(p.sy), rd(p.sr)],
+    R: { flex: rd(p.flex), abd: rd(p.abd), hflex: rd(p.hflex), rot: rd(p.rot), elbow: rd(p.elbow) } };
+  if ('pron' in p) Object.assign(res.R, { pron: rd(p.pron), wflex: rd(p.wflex), wdev: rd(p.wdev) });
+  if ('lx' in p) res.L = [rd(p.lx, 3), rd(p.ly, 3), rd(p.lz, 3)];
+  if ('flx' in p) res.FL = [rd(p.flx, 3), rd(p.flz, 3)];
+  if ('frx' in p) res.FR = [rd(p.frx, 3), rd(p.frz, 3)];
+  const before = ev(p0).err;
+  return JSON.stringify(res) + '\nerr ' + JSON.stringify(r.err) + '\nwas ' + JSON.stringify(before); };

@@ -519,25 +519,44 @@ const GRIP_CUES = [
 ];
 
 // ---------- Volée di dritto (ricostruita sul tutorial di riferimento) ----------
-const V_READY = B_READY;
-const V_SPLIT = P({ hips: { p: [0, 0.97, -0.02] }, FL: { heel: 14, y: 0.02, toeFlat: false }, FR: { heel: 14, y: 0.02, toeFlat: false } }, V_READY);
-const V_LAND = P({ hips: { p: [0, 0.93, -0.02], r: [14, 0, 0] } }, V_READY);
-const V_PREP = P({ hips: { p: [0, 0.93, -0.03], r: [14, -24, 0] }, spine: [4, -22, 0], head: [-10, 42, 0],
-  R: fk({ flex: 85, abd: 38, hflex: 59, rot: -52, elbow: 108, pron: 85, wflex: -15, wdev: -7, scap: [6, 2] }),
-  L: freeL([0.58, 0.26, 0.28], [0.4, -1, -0.3], 0, 0.15) }, V_LAND);
-const V_HIT = P({ hips: { p: [0.02, 0.9, 0.06], r: [18, -6, 0] }, spine: [6, -4, 0], head: [-14, 14, 0],
-  FL: { x: 0.2, z: 0.36, out: 8 }, FR: { heel: 12 },
-  R: fk({ flex: 48, abd: 58, hflex: 83, rot: -41, elbow: 82, pron: 82, wflex: -53, wdev: -30, scap: [4, 0] }),
-  L: freeL([0.58, 0.2, 0.24], [0.4, -1, -0.3], 0, 0.15), effort: 1 }, V_PREP);
-const V_FOLLOW = P({ hips: { p: [0.03, 0.88, 0.12], r: [20, 18, 0] }, spine: [10, 16, 0], head: [-18, -14, 0],
-  R: fk({ flex: 23, abd: 80, hflex: 83, rot: -29, elbow: 52, pron: 15, wflex: -20, wdev: -16, scap: [2, -4] }),
-  L: freeL([0.58, 0.1, 0.02], [0.4, -1, -0.1], 0, 0.15), effort: 0.5 }, V_HIT);
-// la racchetta sale di lato passando davanti, lontana dal viso
-const V_RISE = P({ R: fk({ flex: 55, abd: 25, hflex: 30, rot: 3, elbow: 85, pron: 57, wflex: -19, wdev: -24, scap: [3, 1] }) }, lerpPose(V_LAND, V_PREP, 0.5));
+// Angoli ricavati dal video: stima della postura 3D sulle tre ripetizioni a mezza altezza,
+// con le direzioni nel piano dell'immagine corrette sulle posizioni 2D dei fotogrammi.
+// Attesa: gomiti vicino ai fianchi, avambracci in avanti, racchetta davanti al petto.
+const V_READY = P({ hips: { p: [0.02, 0.94, 0.12], r: [17, 2, -2] }, spine: [8, 1, 1], head: [-20, -3, 0],
+  FL: { x: 0.25, z: 0.06, out: 10, pivot: 'ball' }, FR: { x: -0.21, z: -0.06, out: 10, pivot: 'ball' },
+  R: fk({ flex: 20, abd: 13, hflex: -6, rot: 25, elbow: 93, pron: -1, wflex: -13, wdev: 25 }) }, B_READY);
+const V_SPLIT = P({ hips: { p: [0.01, 0.97, 0.06] }, FL: { heel: 14, y: 0.025, toeFlat: false }, FR: { heel: 14, y: 0.025, toeFlat: false } }, V_READY);
+// lo split step atterra un po' più largo, con il piede destro leggermente indietro
+const V_LAND = P({ hips: { p: [-0.03, 0.9, 0.04], r: [14, 0, 0] }, FL: { x: 0.29, z: 0.085 }, FR: { x: -0.28, z: -0.2 } }, V_READY);
+// Preparazione: gomito alto, all'altezza della spalla e in fuori; avambraccio verso l'alto,
+// racchetta verticale sopra la mano; braccio sinistro disteso in avanti e in basso.
+const V_PREP = P({ hips: { p: [-0.045, 0.89, 0.01], r: [12, -18, 4] }, spine: [9, -28, 8], head: [-17, 41, 0],
+  R: fk({ flex: 68, abd: 113, hflex: 58, rot: -32, elbow: 43, pron: 20, wflex: -29, wdev: -14, scap: [8, 2] }),
+  L: freeL([0.62, -0.1, 0.24], [0.4, -1, -0.3], 0, 0.15) }, V_LAND);
+// Impatto: il gomito scende davanti al fianco destro all'altezza del petto, l'avambraccio va
+// avanti verso la palla, polso fermo e piegato indietro; racchetta inclinata in fuori con la
+// testa all'altezza del viso, piatto verso la palla. Braccio sinistro aperto all'altezza della spalla.
+const V_HIT = P({ hips: { p: [0.045, 0.885, 0.37], r: [13, -17, 1] }, spine: [9, -22, 9], head: [-18, 34, 0],
+  FL: { x: 0.3, z: 0.66, out: 8 }, FR: { heel: 16 },
+  R: fk({ flex: 50, abd: 36, hflex: 44, rot: -68, elbow: 100, pron: 55, wflex: -8, wdev: -25, scap: [4, 0] }),
+  L: freeL([0.66, -0.04, 0.22], [0.4, -1, -0.3], 0, 0.15), effort: 1 }, V_PREP);
+// Chiusura: braccio disteso verso sinistra all'altezza della spalla, racchetta verticale,
+// busto in avanti sul piede sinistro; la mano sinistra torna a prendere la racchetta dal cuore.
+const V_FOLLOW = P({ hips: { p: [0.035, 0.82, 0.48], r: [28, 4, -2] }, spine: [20, 5, 6], head: [-36, -6, 0],
+  FR: { heel: 38 },
+  R: fk({ flex: 18, abd: 106, hflex: 120, rot: -28, elbow: 34, pron: -14, wflex: -9, wdev: 10, scap: [2, -4] }),
+  L: freeL([0.02, -0.16, 0.3], [0.7, -1, -0.3], 1, 0.85), effort: 0.5 }, V_HIT);
+// la racchetta sale sul lato destro della testa, mai davanti al viso
+const V_RISE = P({ R: fk({ flex: 19, abd: 43, hflex: 28, rot: -62, elbow: 115, pron: 33, wflex: -22, wdev: -25, scap: [3, 1] }),
+  L: freeL([0.4, -0.08, 0.42], [0.7, -1, -0.1], 0.3, 0.3) }, lerpPose(V_LAND, V_PREP, 0.5));
 // passo di scarico: dopo la preparazione il piede sinistro va avanti e porta il peso verso la palla
-const V_STEP = P({ FL: { x: 0.2, z: 0.35, y: 0.06, heel: 8, out: 8, toeFlat: false }, hips: { p: [0.01, 0.92, 0.02] } }, lerpPose(V_PREP, V_HIT, 0.35));
+const V_STEP = P({ FL: { x: 0.3, z: 0.36, y: 0.07, heel: 8, out: 8, toeFlat: false } }, lerpPose(V_PREP, V_HIT, 0.4));
+// rientro: il piede sinistro torna indietro, poi il destro si rimette in linea
 const V_LIFT = P({ FL: { y: 0.04, heel: 10, toeFlat: false } }, V_FOLLOW);
-const V_BACK = P({ FL: { x: 0.24, z: 0.18, y: 0.06, heel: 8, toeFlat: false } }, lerpPose(V_FOLLOW, V_READY, 0.5));
+// le due mani riportano la racchetta davanti al petto mentre il piede sinistro rientra
+const V_BACK = P({ FL: { x: 0.27, z: 0.36, y: 0.07, heel: 8, toeFlat: false }, R: V_READY.R }, lerpPose(V_FOLLOW, V_LAND, 0.5));
+const V_RET = P({ FL: { x: 0.25, z: 0.06 } }, V_LAND);
+const V_BACK2 = P({ FR: { x: -0.24, z: -0.13, y: 0.04, heel: 8, toeFlat: false } }, lerpPose(V_RET, V_READY, 0.5));
 
 const VOLEE_FH = {
   id: 'volee-dritto',
@@ -557,10 +576,11 @@ const VOLEE_FH = {
   why: 'La volée è il colpo con cui comandi il punto da rete. Ripeterla a vuoto fissa la preparazione corta, l\'impatto davanti e il passo che scarica il peso in avanti, e scalda spalla e avambraccio nella posizione che userai in partita.',
   cues: [
     'Attesa a 2-3 metri dalla rete: gambe poco più larghe delle spalle e leggermente piegate, racchetta alta davanti a te. Ti sposti verso il centro se la palla arriva dalla diagonale, verso il centro della tua metà se arriva dal lungolinea.',
-    'Preparazione: porti la racchetta di lato, all\'altezza della testa, girando appena il busto. Non superare mai la linea delle spalle.',
+    'Preparazione: porti la racchetta di lato, con la mano all\'altezza della testa, girando appena il busto. Il gomito resta alto, all\'altezza della spalla, e la racchetta sta sopra la mano. Non superare mai la linea delle spalle.',
     'Mano sinistra in avanti: la racchetta va verso la mano sinistra e colpisce la palla davanti al corpo.',
+    'All\'impatto il gomito scende davanti al fianco, il polso resta fermo e piegato un po\' indietro: la testa della racchetta resta più alta della mano, all\'altezza del viso.',
     'Passo di scarico in avanti mentre colpisci: il peso va verso la palla, la racchetta accompagna in avanti verso l\'altro campo.',
-    'Rientra subito nella posizione di attesa.',
+    'A fine colpo la mano sinistra riprende la racchetta dal cuore e insieme la riportano davanti al petto: rientra subito nella posizione di attesa.',
   ],
   errors: [
     'Racchetta bassa in attesa, come in difesa: le palle dalle spalle in su (e bandeja e smash) diventano più difficili.',
@@ -609,7 +629,9 @@ const VOLEE_FH = {
     { t: 0.54, pose: V_FOLLOW, ease: 'out' },
     { t: 0.64, pose: V_FOLLOW, ease: 'lin' },
     { t: 0.69, pose: V_LIFT, ease: 'sine' },
-    { t: 0.82, pose: V_BACK, ease: 'sine' },
+    { t: 0.78, pose: V_BACK, ease: 'sine' },
+    { t: 0.86, pose: V_RET, ease: 'sine' },
+    { t: 0.93, pose: V_BACK2, ease: 'sine' },
     { t: 1, pose: V_READY, ease: 'sine' },
   ],
 };
