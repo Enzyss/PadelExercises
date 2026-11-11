@@ -22,12 +22,15 @@ Serve solo **un elastico** (più una sedia e un tappetino) e, per i colpi, la tu
 | 9 | Diagonale con elastico sotto il piede | 2×8 per lato | Rotazione dal basso verso l'alto |
 | | **Colpi a vuoto (con la racchetta)** | | |
 | 10 | Volée di dritto | 2×8 | Preparazione corta, impatto davanti, passo di scarico |
-| 11 | Bandeja | 2×6 | Girata, preparazione alta, impatto davanti, accompagnamento a sinistra |
+| 11 | Bandeja | 2×6 | Girata, preparazione alta, impatto al lato a braccio disteso, accompagnamento in avanti |
 | | **Esplosività** | | |
 | 12 | Squat jump | 3×5 | Esplosività |
 
 Volée di dritto e bandeja sono ricostruite fase per fase su due video tutorial di riferimento
-(tecnica, errori più comuni e scelte tattiche). Volée di rovescio e vibora arriveranno quando
+(tecnica, errori più comuni e scelte tattiche). Gli angoli di braccia, tronco, bacino e gambe
+in ogni fase vengono da una stima della postura 3D sulle ripetizioni del video, corretta sulle
+posizioni 2D dei fotogrammi; l'orientamento della racchetta è misurato sui fotogrammi.
+Volée di rovescio e vibora arriveranno quando
 avranno un loro video di riferimento.
 
 Per entrambi i colpi il pulsante **Campo e palla** mette il manichino su un campo da padel vero

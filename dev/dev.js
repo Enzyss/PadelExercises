@@ -473,8 +473,8 @@ window.fitBody = (exId, t, tgt, opt = {}) => { const e = byId(exId); const rig =
   if (opt.step) spec.push(['flx', 0.01, () => base.FL.x], ['flz', 0.01, () => base.FL.z]);
   if (opt.feet) spec.push(['flx', 0.01, () => base.FL.x], ['flz', 0.01, () => base.FL.z], ['frx', 0.01, () => base.FR.x], ['frz', 0.01, () => base.FR.z]);
   if (tgt.racket) spec.push(['pron', 1, () => R0.pron || 0], ['wflex', 1, () => R0.wflex || 0], ['wdev', 1, () => R0.wdev || 0]);
-  for (const k of (opt.fix || [])) { const i = spec.findIndex((s) => s[0] === k); if (i >= 0) spec.splice(i, 1); }
   const p0 = Object.fromEntries(spec.map(([k, , g]) => [k, g()]));
+  for (const k of (opt.fix || [])) { const i = spec.findIndex((s) => s[0] === k); if (i >= 0) spec.splice(i, 1); }
   const mk = (p) => { const pose = structuredClone(base); pose.hips = { ...pose.hips, r: [p.hp, p.hy, p.hr], p: [p.px, p.py, p.pz] }; pose.spine = [p.sp, p.sy, p.sr];
     pose.R = { ...pose.R, flex: p.flex, abd: p.abd, hflex: p.hflex, rot: p.rot, elbow: p.elbow };
     if ('pron' in p) Object.assign(pose.R, { pron: p.pron, wflex: p.wflex, wdev: p.wdev });
@@ -505,3 +505,10 @@ window.fitBody = (exId, t, tgt, opt = {}) => { const e = byId(exId); const rig =
   if ('frx' in p) res.FR = [rd(p.frx, 3), rd(p.frz, 3)];
   const before = ev(p0).err;
   return JSON.stringify(res) + '\nerr ' + JSON.stringify(r.err) + '\nwas ' + JSON.stringify(before); };
+// verify-style arm/torso clearances of the racket arm for override poses at phase t
+window.armClr = (exId, t, overs, side = 0) => { const rig = stage.rig; const V = THREE.Vector3; const wp = (n) => rig.b[n].getWorldPosition(new V());
+  const segD = (p1, q1, p2, q2) => { let best = 9; for (let i = 0; i <= 20; i++) { const a = p1.clone().lerp(q1, i / 20); const ab = q2.clone().sub(p2); const tt = Math.max(0, Math.min(1, a.clone().sub(p2).dot(ab) / ab.lengthSq())); best = Math.min(best, a.distanceTo(p2.clone().addScaledVector(ab, tt))); } return best; };
+  return overs.map((o) => { rig.apply(mergeOver(samplePose(byId(exId), t, side), o)); const A = wp('Hips'), B = wp('Spine2'); const S = side ? 'Left' : 'Right';
+    const fa = segD(wp(S + 'ForeArm'), wp(S + 'Hand'), A, B) - 0.15, ua = segD(wp(S + 'Arm').lerp(wp(S + 'ForeArm'), 0.35), wp(S + 'ForeArm'), A, B) - 0.16;
+    const r = rig.racketFrame(side ? 'L' : 'R'); const f = (v) => v.toArray().map((x) => +x.toFixed(2));
+    return `${JSON.stringify(o.R || {})} avamb ${fa.toFixed(3)} braccio ${ua.toFixed(3)} grip ${f(r.grip)} dir ${f(r.dir)} sh ${f(wp(S + 'Arm'))}`; }).join('\n'); };

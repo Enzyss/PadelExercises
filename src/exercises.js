@@ -467,45 +467,60 @@ const NET = P({
 });
 
 // ---------- Bandeja ----------
-// Ricostruita sul video di riferimento (fasi: attesa, girata con due mani,
-// preparazione alta con braccio sinistro che indica la palla, impatto davanti
-// e sopra la spalla destra, accompagnamento in avanti verso sinistra, rientro).
+// Angoli ricavati dal video di riferimento (stima della postura 3D sulla ripetizione frontale
+// della bandeja classica, direzioni nel piano dell'immagine corrette sulle posizioni 2D).
 // Il braccio della racchetta è in angoli articolari (FK): tra una fase e l'altra
 // le articolazioni ruotano in modo continuo, senza scorciatoie davanti al viso.
-const B_READY = P({ R: fk({ flex: 30, abd: 18, rot: 49, elbow: 105, pron: 27, wflex: -36, wdev: -9 }) }, NET);
+// Attesa: la stessa della volée (lo dice l'istruttore): gomiti vicino ai fianchi,
+// avambracci in avanti, racchetta davanti al petto.
+const B_READY = P({ hips: { p: [0.02, 0.94, 0.12], r: [17, 2, -2] }, spine: [8, 1, 1], head: [-20, -3, 0],
+  FL: { x: 0.25, z: 0.06, out: 10, pivot: 'ball' }, FR: { x: -0.21, z: -0.06, out: 10, pivot: 'ball' },
+  R: fk({ flex: 20, abd: 13, hflex: -6, rot: 25, elbow: 93, pron: -1, wflex: -13, wdev: 25 }) }, NET);
+// girata: gamba destra dietro, le due mani portano su la racchetta
 const B_TURN = P({
-  hips: { p: [0, 0.96, -0.06], r: [8, -55, 0] }, spine: [2, -15, 0], head: [-6, 50, 0],
-  FL: { x: 0.24, z: 0, out: -45 },
+  hips: { p: [0.02, 0.97, -0.09], r: [11, -30, -1] }, spine: [1, -36, 10], head: [-10, 58, 0],
+  FL: { x: 0.25, z: 0.06, out: -45 },
   FR: { x: -0.1, z: -0.34, out: 72 },
-  R: fk({ flex: 15, abd: 30, hflex: 45, rot: -21, elbow: 120, pron: 12, wflex: -30, wdev: -17, scap: [4, 0] }),
+  R: fk({ flex: 34, abd: 58, hflex: 61, rot: -8, elbow: 64, pron: -16, wflex: -12, wdev: 14, scap: [4, 0] }),
   L: freeL([0.02, -0.1, 0.3], [0.7, -1, -0.3], 1, 0.85),
 }, B_READY);
+// preparazione: busto di profilo, gomito all'altezza della spalla, punta della racchetta alta,
+// mano sinistra alta che punta la palla
 const B_PREP = P({
-  hips: { p: [0, 0.97, -0.12], r: [6, -62, 0] }, spine: [0, -18, 0], head: [-14, 58, 0],
-  FL: { x: 0.24, z: 0, out: -50 },
+  hips: { p: [0, 0.94, 0.045], r: [6, -61, -7] }, spine: [-6, -41, 12], head: [-22, 70, 0],
+  FL: { x: 0.25, z: 0.06, out: -50 },
   FR: { x: -0.1, z: -0.34, out: 74 },
-  R: fk({ flex: 0, abd: 100, hflex: 20, rot: -60, elbow: 105, pron: -24, wflex: -32, wdev: -30, scap: [12, 4] }),
-  L: freeL([0.3, 0.55, 0.28], [0.6, -0.4, -0.6], 0, 0.15),
+  R: fk({ flex: 21, abd: 90, hflex: 40, rot: -60, elbow: 70, pron: -20, wflex: 8, wdev: -1, scap: [12, 4] }),
+  L: freeL([0.1, 0.48, 0.325], [0.6, -0.4, -0.6], 0, 0.15),
 }, B_TURN);
-const B_LOOP = P({ R: fk({ flex: 0, abd: 112, hflex: 31, rot: -81, elbow: 112, pron: -34, wflex: -49, wdev: -30, scap: [14, 6] }) }, B_PREP);
+// la racchetta scende dietro la testa mentre le spalle finiscono di girare
+const B_LOOP = P({ hips: { p: [0, 0.97, -0.05], r: [3, -71, 1] }, spine: [-16, -41, -8], head: [-24, 72, 0],
+  R: fk({ flex: 16, abd: 76, hflex: 59, rot: -58, elbow: 95, pron: -68, wflex: -32, wdev: -25, scap: [14, 6] }),
+  L: freeL([0.07, 0.49, 0.325], [0.6, -0.4, -0.6], 0, 0.15) }, B_PREP);
+// impatto al lato destro, all'altezza degli occhi, con il braccio disteso: busto ancora quasi
+// di profilo, braccio sinistro aperto verso la rete (non si va sotto la palla come nello smash)
 const B_HIT = P({
-  hips: { p: [0.02, 0.98, -0.04], r: [4, -38, 0] }, spine: [0, -4, 0], head: [-16, 38, 0],
+  hips: { p: [0.02, 0.98, -0.035], r: [10, -55, -2] }, spine: [-1, -27, 7], head: [-16, 50, 0],
   FR: { heel: 22 },
-  R: fk({ flex: 0, abd: 130, hflex: 90, rot: 0, elbow: 20, pron: -8, wflex: -24, wdev: -30, scap: [14, 0] }),
-  L: freeL([0.18, 0.05, 0.3], [0.8, -1, -0.3], 0, 0.3),
+  R: fk({ flex: 72, abd: 119, hflex: 56, rot: -17, elbow: 38, pron: -15, wflex: 5, wdev: -20, scap: [14, 0] }),
+  L: freeL([0.58, 0.315, 0.21], [0.8, -1, -0.3], 0, 0.3),
   effort: 1,
 }, B_PREP);
+// la racchetta va avanti e scende verso l'altro campo, il busto si apre verso la rete
 const B_FOLLOW = P({
-  hips: { p: [0.05, 0.96, 0.04], r: [8, -18, 0] }, spine: [6, 6, 0], head: [-10, 12, 0],
+  hips: { p: [0.05, 0.995, 0.005], r: [8, -21, -3] }, spine: [4, -15, -11], head: [-10, 30, 0],
   FR: { heel: 36 },
-  R: fk({ flex: 0, abd: 75, hflex: 100, rot: 16, elbow: 25, pron: -16, wflex: -33, wdev: 2, scap: [4, -6] }),
-  L: freeL([0.12, -0.02, 0.24], [0.8, -1, -0.2], 0, 0.3),
+  R: fk({ flex: 75, abd: 38, hflex: 42, rot: 30, elbow: 15, pron: 30, wflex: -10, wdev: 5, scap: [4, -6] }),
+  L: freeL([0.635, -0.045, 0.1], [0.8, -1, -0.2], 0, 0.3),
   effort: 0.5,
 }, B_HIT);
+// dopo l'impatto il braccio resta disteso e la racchetta va avanti verso l'altro campo,
+// poi scende verso il fianco sinistro
+const B_THRU = P({ R: fk({ flex: 72, abd: 95, hflex: 72, rot: -17, elbow: 28, pron: -5, wflex: 0, wdev: -15, scap: [10, 0] }) }, lerpPose(B_HIT, B_FOLLOW, 0.4));
 // il piede destro torna in avanti nella posizione di attesa
-const B_STEP_FWD = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_FOLLOW, B_READY, 0.5));
+const B_STEP_FWD = P({ FR: { x: -0.16, z: -0.2, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_FOLLOW, B_READY, 0.5));
 // racket kept a hand's width in front of the face while the shoulders turn
-const B_STEP_BACK = P({ FR: { x: -0.17, z: -0.17, y: 0.07, heel: 10, toeFlat: false },
+const B_STEP_BACK = P({ FR: { x: -0.16, z: -0.2, y: 0.07, heel: 10, toeFlat: false },
   R: fk({ flex: 22, abd: 24, hflex: 22, rot: 13, elbow: 95, pron: 16, wflex: -33, wdev: -13, scap: [2, 0] }) }, lerpPose(B_READY, B_TURN, 0.5));
 
 // continental grip, shared by all the strokes
@@ -521,10 +536,8 @@ const GRIP_CUES = [
 // ---------- Volée di dritto (ricostruita sul tutorial di riferimento) ----------
 // Angoli ricavati dal video: stima della postura 3D sulle tre ripetizioni a mezza altezza,
 // con le direzioni nel piano dell'immagine corrette sulle posizioni 2D dei fotogrammi.
-// Attesa: gomiti vicino ai fianchi, avambracci in avanti, racchetta davanti al petto.
-const V_READY = P({ hips: { p: [0.02, 0.94, 0.12], r: [17, 2, -2] }, spine: [8, 1, 1], head: [-20, -3, 0],
-  FL: { x: 0.25, z: 0.06, out: 10, pivot: 'ball' }, FR: { x: -0.21, z: -0.06, out: 10, pivot: 'ball' },
-  R: fk({ flex: 20, abd: 13, hflex: -6, rot: 25, elbow: 93, pron: -1, wflex: -13, wdev: 25 }) }, B_READY);
+// Attesa: la stessa della bandeja.
+const V_READY = B_READY;
 const V_SPLIT = P({ hips: { p: [0.01, 0.97, 0.06] }, FL: { heel: 14, y: 0.025, toeFlat: false }, FR: { heel: 14, y: 0.025, toeFlat: false } }, V_READY);
 // lo split step atterra un po' più largo, con il piede destro leggermente indietro
 const V_LAND = P({ hips: { p: [-0.03, 0.9, 0.04], r: [14, 0, 0] }, FL: { x: 0.29, z: 0.085 }, FR: { x: -0.28, z: -0.2 } }, V_READY);
@@ -642,7 +655,7 @@ const BANDEJA = {
   short: 'Bandeja',
   section: 'Colpi a vuoto',
   sets: 2, reps: 6, unit: 'rip',
-  tempo: 'girata · preparazione alta · impatto davanti · accompagna verso l\'altro campo',
+  tempo: 'girata · preparazione alta · impatto al lato a braccio disteso · accompagna verso l\'altro campo',
   dur: 4.2,
   sided: true,
   sideLabels: ['Destrorso', 'Mancino'],
@@ -653,10 +666,10 @@ const BANDEJA = {
   sec: ['obliqui', 'tricipiti', 'estensori'],
   why: 'La bandeja ("vassoio") si gioca sui pallonetti che non ti scavalcano e che non riesci a schiacciare. Serve a difendere la rete: tieni gli avversari dietro e rientri a rete il prima possibile. Ripeterla a vuoto fissa la sequenza giusta e scalda la spalla nella posizione che userai in partita.',
   cues: [
-    'Attesa a 2-3 metri dalla rete: racchetta all\'altezza della testa, mano sinistra sul cuore, gambe poco più larghe delle spalle.',
+    'Attesa a 2-3 metri dalla rete, la stessa della volée: racchetta alta davanti al petto, mano sinistra sul cuore, gambe poco più larghe delle spalle.',
     'Appena vedi il pallonetto: gamba destra indietro e racchetta su con tutte e due le mani, ti metti di profilo. Piccoli passi per fermarti comodo.',
     'Preparazione: gomito all\'altezza della spalla, punta della racchetta in alto, mano sinistra in avanti che indica la palla.',
-    'Impatto all\'altezza degli occhi, davanti, con il braccio disteso. Sotto la palla ma un po\' alla sua sinistra, mai esattamente sotto.',
+    'Impatto all\'altezza degli occhi, al lato destro, con il braccio disteso: il busto è ancora quasi di profilo e il braccio sinistro si apre verso la rete. Stai un po\' alla sinistra della palla, mai esattamente sotto.',
     'Dopo l\'impatto la racchetta va avanti verso l\'altro campo e il piatto gira leggermente verso l\'alto, come un vassoio (taglio). Poi passi veloci in avanti: torna a rete.',
   ],
   errors: [
@@ -701,6 +714,7 @@ const BANDEJA = {
     { t: 0.42, pose: B_PREP, ease: 'lin' },
     { t: 0.48, pose: B_LOOP, ease: 'sine' },
     { t: 0.53, pose: B_HIT, ease: 'in' },
+    { t: 0.57, pose: B_THRU, ease: 'lin' },
     { t: 0.62, pose: B_FOLLOW, ease: 'out' },
     { t: 0.72, pose: B_FOLLOW, ease: 'lin' },
     { t: 0.86, pose: B_STEP_FWD, ease: 'sine' },
