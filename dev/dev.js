@@ -1,4 +1,6 @@
 import { Stage } from '../src/scene.js';
+import { RACKET_THUMB } from '../src/rig.js';
+window.setThumb = (a) => { RACKET_THUMB.splice(0, 4, ...a); };
 import { EXERCISES, samplePose } from '../src/exercises.js';
 import { applyProps } from '../src/props.js';
 import { impactPoint, aimFor } from '../src/court.js';
@@ -512,3 +514,31 @@ window.armClr = (exId, t, overs, side = 0) => { const rig = stage.rig; const V =
     const fa = segD(wp(S + 'ForeArm'), wp(S + 'Hand'), A, B) - 0.15, ua = segD(wp(S + 'Arm').lerp(wp(S + 'ForeArm'), 0.35), wp(S + 'ForeArm'), A, B) - 0.16;
     const r = rig.racketFrame(side ? 'L' : 'R'); const f = (v) => v.toArray().map((x) => +x.toFixed(2));
     return `${JSON.stringify(o.R || {})} avamb ${fa.toFixed(3)} braccio ${ua.toFixed(3)} grip ${f(r.grip)} dir ${f(r.dir)} sh ${f(wp(S + 'Arm'))}`; }).join('\n'); };
+// thumb of the continental grip: wraps the handle on the side opposite the fingers, lies OVER the
+// middle finger (never inside the fingers or the handle) and points diagonally towards the head
+window.fitThumb = (exId = 'volee-dritto', t = 0.36, opt = {}) => { const e = byId(exId); const rig = stage.rig; const V = THREE.Vector3; const Qt = THREE.Quaternion;
+  rig.apply(samplePose(e, t, 0)); const side = 'Right', sg = -1;
+  const r = rig.racketFrame('R'); const C = r.grip.clone(), A = r.dir.clone();
+  const bone = (n) => rig.b[`${side}Hand${n}`]; const wp = (n) => bone(n).getWorldPosition(new V());
+  const segD = (p, a, b) => { const ab = b.clone().sub(a); const tt = Math.max(0, Math.min(1, p.clone().sub(a).dot(ab) / ab.lengthSq())); return p.distanceTo(a.clone().addScaledVector(ab, tt)); };
+  const fing = []; for (const f of ['Index', 'Middle', 'Ring']) for (let i = 1; i < 4; i++) fing.push([wp(f + i), wp(f + (i + 1))]);
+  const radial = (p) => { const v = p.clone().sub(C); const al = v.dot(A); return { d: v.addScaledVector(A, -al).length(), al }; };
+  const mid = wp('Middle2').lerp(wp('Middle3'), 0.5);
+  const set = (x, y, z, f2) => { bone('Thumb1').quaternion.setFromEuler(new THREE.Euler(x * DEGR, -sg * y * DEGR, -sg * z * DEGR)); const q = new Qt().setFromAxisAngle(new V(0, 0, 1), -sg * f2 * DEGR); bone('Thumb2').quaternion.copy(q); bone('Thumb3').quaternion.copy(q); bone('Thumb1').updateMatrixWorld(true); };
+  const ev = (x, y, z, f2) => { set(x, y, z, f2); const P = [1, 2, 3, 4].map((i) => wp('Thumb' + i)); let c = 0; const info = {};
+    let minH = 9, minF = 9;
+    for (let i = 1; i < 3; i++) for (const u of [0, 0.5, 1]) { const q = P[i].clone().lerp(P[i + 1], u); const { d } = radial(q); minH = Math.min(minH, d); for (const [a, b] of fing) minF = Math.min(minF, segD(q, a, b)); }
+    c += Math.max(0, (opt.hR ?? 0.026) - minH) ** 2 * 3000 + Math.max(0, (opt.fR ?? 0.017) - minF) ** 2 * 3000;
+    // pad of the thumb on the handle: middle of the distal segment close to the handle surface
+    const pad = P[2].clone().lerp(P[3], 0.5); c += (radial(pad).d - (opt.padR ?? 0.028)) ** 2 * 400;
+    // diagonal towards the racket head
+    const adv = radial(P[3]).al - radial(P[1]).al; c += Math.max(0, (opt.adv ?? 0.03) - adv) ** 2 * 300;
+    // tip resting on the middle finger (outside it)
+    c += Math.max(0, P[3].distanceTo(mid) - (opt.tipD ?? 0.025)) ** 2 * 100;
+    c += (f2 / 100) ** 2 * 0.002 + Math.max(0, (opt.minF2 ?? 0) - f2) ** 2 * 0.002;
+    return { c, minH, minF, adv, tip: P[3].distanceTo(mid), padR: radial(pad).d }; };
+  let best = null;
+  for (let x = -90; x <= 90; x += 10) for (let y = -90; y <= 90; y += 10) for (let z = -90; z <= 90; z += 10) for (let f2 = 0; f2 <= 70; f2 += 10) { const r2 = ev(x, y, z, f2); if (!best || r2.c < best.c) best = { ...r2, x, y, z, f2 }; }
+  for (const st of [5, 2, 1]) { let imp = true; while (imp) { imp = false; for (const k of ['x', 'y', 'z', 'f2']) for (const d of [st, -st]) { const q = { ...best, [k]: best[k] + d }; const r2 = ev(q.x, q.y, q.z, q.f2); if (r2.c < best.c - 1e-9) { best = { ...r2, x: q.x, y: q.y, z: q.z, f2: q.f2 }; imp = true; } } } }
+  const f = (v) => (v * 100).toFixed(1);
+  return `RACKET_THUMB = [${best.x}, ${best.y}, ${best.z}, ${best.f2}]  manico ${f(best.minH)}cm dita ${f(best.minF)}cm avanzamento ${f(best.adv)}cm punta-medio ${f(best.tip)}cm polpastrello ${f(best.padR)}cm cost ${best.c.toExponential(2)}`; };

@@ -3,6 +3,7 @@ import { EXERCISES, samplePose } from './exercises.js';
 import { MUSCLES } from './muscles.js';
 import { applyProps } from './props.js';
 import { impactPoint, aimFor } from './court.js';
+import * as THREE from 'three';
 
 const $ = (s, r = document) => r.querySelector(s);
 const el = (tag, cls, txt) => {
@@ -75,12 +76,39 @@ const COURT_CAMS = {
   back: { p: [1.4, 3.4, 13.4], t: [0.4, 1.3, 1.2] },
 };
 const courtActive = () => state.court && !!EXERCISES[state.idx].court;
-// close-up of the racket hand: in front of the player, a little to the side of the racket arm
+// close-up of the racket hand, seen from the thumb side (the racket face side of the hand),
+// a little from above; among a few directions around the handle it takes the one closest to the
+// thumb side whose line of sight is not blocked by the body or the arms
+const GRIP_DIST = 0.7;
+const UP = new THREE.Vector3(0, 1, 0);
+const segDist = (p, a, b) => { const ab = b.clone().sub(a); const t = Math.max(0, Math.min(1, p.clone().sub(a).dot(ab) / ab.lengthSq())); return p.distanceTo(a.clone().addScaledVector(ab, t)); };
+function gripView(s) {
+  const rig = stage.rig; const r = rig.racketFrame(s); const g = rig.gripPoint(s);
+  const wx = r.dir.clone().cross(r.face).normalize();
+  const wp = (n) => rig.b[n].getWorldPosition(new THREE.Vector3());
+  const S = s === 'L' ? 'Left' : 'Right', O = s === 'L' ? 'Right' : 'Left';
+  // the thumb (middle of its last two bones) must be in sight, not only the hand
+  const th = wp(S + 'HandThumb3').lerp(wp(S + 'HandThumb4'), 0.5);
+  const caps = [[wp('Hips'), wp('Neck'), 0.19], [wp('Head'), wp('Head').addScaledVector(UP, 0.15), 0.13],
+    [wp(S + 'Arm'), wp(S + 'ForeArm'), 0.08], [wp(S + 'ForeArm'), wp(S + 'ForeArm').lerp(wp(S + 'Hand'), 0.92), 0.065],
+    [wp(O + 'Arm'), wp(O + 'ForeArm'), 0.08], [wp(O + 'ForeArm'), wp(O + 'Hand'), 0.07], [wp(O + 'Hand'), wp(O + 'HandMiddle2'), 0.06]];
+  const front = new THREE.Vector3(0, 0, 1).applyQuaternion(rig.chestQ); // the chest faces this way
+  let best = null;
+  for (const up of [0.45, 0.1, 0.8, -0.25]) for (const a of [0, 30, -30, 60, -60, 100, -100, 140, -140, 180]) {
+    const v = r.face.clone().multiplyScalar(Math.cos(a * Math.PI / 180)).addScaledVector(wx, Math.sin(a * Math.PI / 180)).addScaledVector(UP, up).normalize();
+    const cam = g.clone().addScaledVector(v, GRIP_DIST);
+    let clear = 9;
+    for (let k = 1; k <= 16; k++) { const q = th.clone().lerp(cam, k / 16); for (const [p0, p1, rad] of caps) clear = Math.min(clear, segDist(q, p0, p1) - rad); }
+    // prefer the thumb side, a view from above and from in front of the player; a blocked view only as a last resort
+    const score = Math.abs(a) + Math.abs(up - 0.45) * 40 + Math.max(0, -v.dot(front)) * 80 + (clear < 0.015 ? 1000 - clear * 1000 : 0);
+    if (!best || score < best.score) best = { score, v };
+  }
+  return best.v;
+}
 function gripCam(ex) {
   const s = state.side === 1 ? 'L' : 'R';
-  const g = stage.rig.gripPoint(s).toArray();
-  const sg = s === 'L' ? 1 : -1;
-  return { p: [g[0] + sg * 0.32, g[1] + 0.16, g[2] + 0.72], t: g };
+  const g = stage.rig.gripPoint(s);
+  return { p: g.clone().addScaledVector(gripView(s), GRIP_DIST).toArray(), t: g.toArray() };
 }
 function camFor(ex) {
   if (state.gripCam && ex.handed && stage.rig) return gripCam(ex);
@@ -188,9 +216,11 @@ $('#view').addEventListener('click', (e) => {
 
 // ---------- grip close-up ----------
 let lastGrip = null;
+let gripAuto = true; // the camera keeps turning to the thumb side until the user orbits by hand
 function setGripCam(on) {
   state.gripCam = on;
   lastGrip = null;
+  gripAuto = true;
   $('#gripcam').setAttribute('aria-pressed', on ? 'true' : 'false');
   stage.controls.minDistance = on ? 0.25 : 1.2; // the close-up sits half a metre from the hand
   const c = camFor(EXERCISES[state.idx]);
@@ -198,16 +228,25 @@ function setGripCam(on) {
 }
 $('#gripcam').addEventListener('click', () => setGripCam(!state.gripCam));
 // keep the hand in frame: the camera moves with it, so the user can still orbit around it
-function followGrip(ex) {
+function followGrip(ex, dt) {
   if (!state.gripCam || !ex.handed) { lastGrip = null; return; }
-  const g = stage.rig.gripPoint(state.side === 1 ? 'L' : 'R');
+  const s = state.side === 1 ? 'L' : 'R';
+  const g = stage.rig.gripPoint(s);
   if (lastGrip) {
     const d = g.clone().sub(lastGrip);
     if (stage.camAnim) { stage.camAnim.p.add(d); stage.camAnim.t.add(d); } // still flying in: move the destination
-    else { stage.camera.position.add(d); stage.controls.target.add(d); }
+    else {
+      stage.camera.position.add(d); stage.controls.target.add(d);
+      if (gripAuto) { // turn smoothly towards the thumb side, keeping the distance
+        const o = stage.camera.position.clone().sub(stage.controls.target); const dist = o.length();
+        o.normalize().lerp(gripView(s), 1 - Math.exp(-dt * 2.5)).normalize();
+        stage.camera.position.copy(stage.controls.target).addScaledVector(o, dist);
+      }
+    }
   }
   lastGrip = g;
 }
+stage.controls.addEventListener('start', () => { gripAuto = false; });
 
 // ---------- court: where the ball goes ----------
 function refreshCourt() {
@@ -372,7 +411,7 @@ function tick(now) {
     stage.rig.apply(pose);
     applyProps(stage, ex, pose);
     if (stage.courtOn) stage.court.update(state.phase, stage.camera.aspect);
-    followGrip(ex);
+    followGrip(ex, dt);
     const pulse = 0.5 + 0.5 * Math.sin(now / 260);
     stage.setEffort(Math.min(1, (pose.effort || 0) * (0.85 + 0.15 * pulse)));
   }
@@ -402,4 +441,4 @@ window.addEventListener('hashchange', () => {
 });
 
 // test hook
-window.__app = { state, stage, EXERCISES, select, setSide, samplePose, applyProps, refreshCourt };
+window.__app = { state, stage, EXERCISES, select, setSide, samplePose, applyProps, refreshCourt, gripView };

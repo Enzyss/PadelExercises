@@ -10,9 +10,12 @@ export const DEG = Math.PI / 180;
 // handle: butt cap just past the heel of the hand, ~2-3 cm of free handle above the index finger,
 // open throat, head 26 cm wide.
 // finger curls (MCP, PIP, DIP) and thumb (Euler of the 1st bone for the right hand, then flexion of
-// the 2nd and 3rd) that put each finger on the handle surface; fitted with dev fitFingers()
+// the 2nd and 3rd) that put each finger on the handle surface; fitted with dev fitFingers().
+// The thumb wraps the handle on the side opposite the fingers and lies over the index and middle
+// finger, tip on the middle one: outside the handle and the fingers, so it stays visible
+// (dev fitThumb()).
 const RACKET_FINGERS = { Index: [15, 75, 55], Middle: [60, 65, 50], Ring: [70, 55, 40], Pinky: [85, 50, 35] };
-const RACKET_THUMB = [20, -50, -40, 30];
+export const RACKET_THUMB = [106, 0, -76, 54];
 
 export const RACKET = {
   butt: -0.05, // end of the butt cap
@@ -328,7 +331,7 @@ export class Rig {
     if (racket) {
       // continental grip fitted on the handle: every finger lies on the overgrip. The index is
       // a little spread along the handle ("trigger"), the pinky closes most, near the butt cap;
-      // the thumb wraps the other side and rests against the middle finger.
+      // the thumb wraps the other side, over the index and middle finger.
       for (const [f, angs] of Object.entries(RACKET_FINGERS)) {
         angs.forEach((deg, i) => {
           const bone = this.b[`${side}Hand${f}${i + 1}`];

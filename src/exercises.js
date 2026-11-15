@@ -529,6 +529,7 @@ const GRIP_CUES = [
   'Per trovarla tieni la racchetta di taglio, con il bordo verso l\'alto, e prendila come un martello: la V tra pollice e indice sta sullo spigolo superiore del manico.',
   'Il fondo del manico resta nel palmo, vicino al tallone della mano. Sopra l\'indice rimane un po\' di manico libero.',
   'Indice leggermente staccato dalle altre dita, lungo il manico come sul grilletto: dà controllo al piatto.',
+  'Il pollice avvolge il manico dal lato opposto alle dita, di traverso, e si appoggia sul medio: chiude la presa insieme all\'indice. Non va disteso lungo il manico.',
   'Stretta morbida in attesa, più ferma solo all\'impatto. Una presa sempre stretta irrigidisce polso e gomito.',
   'In attesa l\'altra mano tiene la racchetta dal cuore: la porta su nella preparazione e lascia la mano forte rilassata.',
 ];
