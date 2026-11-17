@@ -254,6 +254,9 @@ export class Court {
       if (p.z > zMax && v.z > 0) {
         p.z = zMax; v.z = -v.z * 0.72;
         if (v.y > 0) v.y *= shot.glassUp;
+        // side spin (vibora): after the back glass the ball does not open towards the centre,
+        // it runs straight along the side wall towards the line
+        if (shot.spin) v.x *= 0.12;
         ev('back', new V3(0, 0, -1));
       }
       for (const [lim, s] of [[xMin, -1], [xMax, 1]]) {

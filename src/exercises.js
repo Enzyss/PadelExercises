@@ -528,6 +528,59 @@ const B_STEP_BACK = P({ FR: { x: -0.16, z: -0.2, y: 0.07, heel: 10, toeFlat: fal
   // the left hand moves a little off the frame while the racket turns
   L: onThroat([0.02, -0.13, 0.3], [0.7, -1, -0.3], { at: [0.064, 0.012, 0.1] }) }, lerpPose(B_READY, B_TURN, 0.5));
 
+// ---------- Vibora (ricostruita sul tutorial di riferimento) ----------
+// Angoli ricavati dal video: stima della postura 3D sulla ripetizione completa vista dalla rete,
+// con le direzioni nel piano dell'immagine corrette sulle posizioni 2D, più le posizioni tenute
+// ferme dall'istruttore (racchetta dietro la testa, impatto al lato).
+// Attesa: la stessa della volée e della bandeja.
+// Primo passo indietro con il destro: la mano sinistra lascia il cuore e si apre, la racchetta
+// sale sul lato destro.
+const VB_STEP_BACK = P({ FR: { x: -0.16, z: -0.24, y: 0.07, heel: 10, toeFlat: false },
+  R: fk({ flex: 22, abd: 45, hflex: 22, rot: -10, elbow: 95, pron: 0, wflex: -20, wdev: -5, scap: [3, 0] }),
+  L: freeL([0.3, 0.1, 0.35], [0.7, -1, -0.3], 0, 0.3) }, lerpPose(B_READY, B_TURN, 0.5));
+const VB_TURN = P({
+  hips: { p: [0.02, 0.99, -0.09], r: [10, -35, -6] }, spine: [2, -19, 14], head: [-10, 50, 0],
+  FL: { x: 0.25, z: 0.06, out: -45 },
+  FR: { x: -0.12, z: -0.42, out: 72 },
+  R: fk({ flex: 18, abd: 73, hflex: 40, rot: -57, elbow: 65, pron: 12, wflex: -13, wdev: -16, scap: [6, 0] }),
+  L: freeL([0.65, 0.245, 0.03], [-2.25, -3.55, 0.2], 0, 0.15),
+}, B_READY);
+// racchetta dietro la testa con il piatto dietro la testa, gomito all'altezza della spalla,
+// mano sinistra alta che mira la palla; busto girato di lato (circa 60 gradi, come nel video)
+const VB_PREP = P({
+  hips: { p: [0.04, 1.0, -0.08], r: [11, -41, -1] }, spine: [4, -20, 10], head: [-22, 62, 0],
+  R: fk({ flex: 66, abd: 107, hflex: -3, rot: -71, elbow: 102, pron: -14, wflex: -8, wdev: -4, scap: [12, 4] }),
+  L: freeL([0.535, 0.475, -0.185], [-2.1, -3.25, 1.25], 0, 0.15),
+}, VB_TURN);
+// molinello: il gomito guida, l'avambraccio esce di lato dalla testa
+const VB_MOLI = P({ hips: { p: [0.01, 1.0, -0.02], r: [11, -48, -1] }, spine: [3, -6, 12], head: [-20, 60, 0],
+  R: fk({ flex: 6, abd: 96, hflex: 67, rot: -40, elbow: 73, pron: 6, wflex: -12, wdev: -12, scap: [12, 2] }),
+  L: freeL([0.61, 0.405, -0.02], [0.2, -0.4, 0.2], 0, 0.15) }, VB_PREP);
+// impatto al lato destro, braccio disteso all'altezza della spalla, racchetta in alto;
+// le braccia si aprono: la destra va verso la palla, la sinistra torna indietro
+const VB_HIT = P({
+  hips: { p: [0.02, 1.0, -0.02], r: [12, -43, -3] }, spine: [0, -6, 13], head: [-16, 45, 0],
+  FR: { heel: 22 },
+  R: fk({ flex: 42, abd: 102, hflex: 51, rot: -40, elbow: 25, pron: 1, wflex: -14, wdev: -13, scap: [12, 0] }),
+  L: freeL([0.64, 0.34, -0.08], [1.8, -3.5, 0.5], 0, 0.3),
+  effort: 1,
+}, VB_PREP);
+// il polso porta la racchetta in avanti (side spin)
+const VB_THRU = P({ hips: { p: [0.04, 0.99, 0.0], r: [9, -19, 1] }, spine: [-2, -7, 4], head: [-12, 30, 0],
+  FR: { heel: 30 },
+  R: fk({ flex: 87, abd: 84, hflex: 62, rot: 6, elbow: 16, pron: 21, wflex: -7, wdev: -8, scap: [8, 0] }),
+  L: freeL([0.625, 0.305, -0.21], [1.6, -3.7, -0.3], 0, 0.3), effort: 0.8 }, VB_HIT);
+// chiusura: la racchetta torna verso di noi, sul lato sinistro, braccio davanti al petto
+const VB_CLOSE = P({
+  hips: { p: [0.05, 0.995, 0.005], r: [12, -20, -4] }, spine: [14, 6, 1], head: [-20, 15, 0],
+  FR: { heel: 36 },
+  R: fk({ flex: 80, abd: 42, hflex: 55, rot: 38, elbow: 50, pron: -8, wflex: -3, wdev: -18, scap: [4, -6] }),
+  L: freeL([0.32, 0.005, 0.465], [2, -1.8, -1.1], 0, 0.3),
+  effort: 0.5,
+}, VB_THRU);
+// il piede destro torna avanti, la mano sinistra riprende il cuore
+const VB_STEP_FWD = P({ FR: { x: -0.16, z: -0.24, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(VB_CLOSE, B_READY, 0.5));
+
 // continental grip, shared by all the strokes
 const GRIP_CUES = [
   'Continental: la stessa impugnatura per volée, bandeja, vibora e smash. Non la cambi tra dritto e rovescio.',
@@ -842,6 +895,81 @@ const BANDEJA = {
   ],
 };
 
+const VIBORA = {
+  id: 'vibora',
+  name: 'Vibora a vuoto',
+  short: 'Vibora',
+  section: 'Colpi a vuoto',
+  sets: 2, reps: 6, unit: 'rip',
+  tempo: 'passo indietro · racchetta dietro la testa · molinello e impatto al lato · polso in avanti · chiudi verso di te',
+  dur: 4.2,
+  sided: true,
+  sideLabels: ['Destrorso', 'Mancino'],
+  handed: true,
+  equip: 'La tua racchetta, senza palla',
+  gripCues: GRIP_CUES,
+  prim: ['deltAnt', 'cuffia'],
+  sec: ['obliqui', 'tricipiti', 'estensori'],
+  why: 'La vibora si gioca sui pallonetti alti ma comodi, quelli che non ti scavalcano. È più d\'attacco della bandeja: con il polso dai alla palla un forte effetto laterale (side spin), così dopo il vetro va nella direzione opposta a quella di qualunque altro colpo e sorprende l\'avversario. È più elaborata della bandeja: conviene imparare prima una buona bandeja. Ripeterla a vuoto fissa il molinello e il movimento del polso, e scalda spalla, gomito e avambraccio nella posizione che userai in partita.',
+  cues: [
+    'Attesa a 2-3 metri dalla rete, la stessa della volée e della bandeja: gambe poco più larghe delle spalle, racchetta davanti alla testa, la mano sinistra aiuta a sostenerla dal cuore.',
+    'Quando arriva il pallonetto: primo passo indietro con la gamba destra e racchetta subito dietro la testa, con il piatto dietro la testa. Gomito all\'altezza della spalla, mano sinistra alta che mira la palla.',
+    'Piccoli passi per trovare la distanza giusta: resta alla sinistra della palla, con lo spazio per distendere il braccio alla tua destra. Non andare sotto la palla come nello smash.',
+    'Molinello: il gomito porta l\'avambraccio fuori da dietro la testa e la racchetta va di lato a prendere la palla al lato destro, con il braccio disteso. È simile allo smash, ma la racchetta va di lato invece che verso l\'alto.',
+    'All\'impatto usa il polso: colpisci la palla di lato, così non gira né in avanti né indietro ma lateralmente (side spin). Mentre la destra va avanti verso la palla, la sinistra torna indietro.',
+    'Dopo l\'impatto la racchetta va in avanti verso l\'altro campo, poi chiudi riportandola verso di te, sul fianco sinistro. Torna subito a rete.',
+    'Impugnatura: continental, come in tutti gli altri colpi. Chi ha già molta confidenza può usare una eastern di rovescio, che aiuta a colpire la palla di lato, ma cambiare impugnatura durante il gioco non è semplice.',
+  ],
+  errors: [
+    'Cercare la palla fermandosi sotto, come per lo smash: per la vibora devi stare alla sua sinistra, così distendi il braccio di lato verso la palla.',
+    'Colpire senza usare il polso: la palla non prende l\'effetto laterale. Senza il polso non è una vibora.',
+    'Portare la racchetta dietro la testa senza alzare la mano sinistra: non punti bene la palla, ti piazzi peggio e perdi equilibrio quando colpisci.',
+    'Giocarla troppo forte quando sei lontano dalla rete: la palla non va dove vuoi e perdi la rete. Più sei lontano, più la velocità deve essere bassa.',
+  ],
+  tactics: [
+    'Quando giocarla: sul pallonetto più comodo, con spazio tra te e la palla. Se la palla ti sta scavalcando gioca uno smash (alla griglia se è difficile); se ti arriva sopra la testa e hai poco tempo per spostarti, una bandeja.',
+    'La palla va trovata alla tua destra. Dal lato in cui il dritto è verso il centro (destrorso a sinistra, mancino a destra) giocala soprattutto sulle palle che vanno verso il centro: puoi colpirla anche un po\' lontana lasciando andare il braccio.',
+    'Profondità prima di tutto: deve rimbalzare dopo la linea di servizio e arrivare sul vetro. Se l\'avversario la anticipa prima del vetro, perde l\'effetto e tu non hai il tempo di tornare a rete.',
+    'Direzione: soprattutto in diagonale. Con tanto effetto, se va in doppia parete (vetro laterale e poi di fondo) invece di aprirsi verso il centro va dritta lungo la parete: l\'avversario resta spiazzato e fa più fatica a giocarla.',
+    'Al centro quando gli avversari sono aperti: nello spazio libero.',
+    'Lungolinea rapida, ai piedi, su una palla facile e con l\'avversario arretrato: rimbalza sul vetro, resta bassa e torna veloce verso la rete. Si gioca con le spalle più chiuse.',
+    'Posizione del corpo: anca e spalla sinistra puntano dove vuoi tirare. Con il dritto verso la parete laterale (destrorso a destra) apri di più il corpo per giocare la diagonale, altrimenti la torsione è eccessiva.',
+  ],
+  // ball on a court: impact at phase `hit`; world metres, player at the origin facing the net (+Z)
+  court: {
+    hit: 0.53,
+    aimWin: [0.42, 0.53, 0.72, 0.88],
+    net: 4,
+    lob: { from: [5.0, 1.0, 12.2], start: 0.08 },
+    shots: [
+      { id: 'diag', label: 'Diagonale (doppia parete)', color: '#3ddc84', land: [6.9, 12.0], time: 0.74, glassUp: 0.3, spin: true,
+        text: 'La scelta principale: diagonale e profonda, verso l\'angolo. Rimbalza, tocca il vetro laterale e poi quello di fondo: con tanto effetto laterale non si apre verso il centro come una palla normale, ma va dritta lungo la parete e l\'avversario resta spiazzato.' },
+      { id: 'center', label: 'Al centro', color: '#4a8cff', land: [2.6, 12.7], time: 0.7, glassUp: 0.3, spin: true,
+        text: 'Quando gli avversari sono aperti: al centro, nello spazio libero.' },
+      { id: 'line', label: 'Lungolinea rapida', color: '#ffc23a', land: [-1.4, 12.6], time: 0.56, glassUp: 0.2, flat: true, spin: true,
+        text: 'Su una palla facile, con l\'avversario arretrato dietro la linea: rapida e ai piedi. Rimbalza sul vetro, resta bassa e torna veloce verso la rete: spesso è un colpo vincente. Spalle più chiuse.' },
+      { id: 'short', label: 'Errore: corta', color: '#ff5233', land: [3.8, 9.8], time: 0.7, glassUp: 0.9, error: true, errorAt: 'bounce', errorLabel: 'Corta: la anticipano',
+        text: 'Da evitare: se rimbalza prima della linea l\'avversario la colpisce prima del vetro. La palla perde l\'effetto e tu non hai il tempo di tornare a rete.' },
+    ],
+  },
+  props: { mat: [1.0, 1.3, 0, -0.1] },
+  cam: { p: [0.4, 1.5, 3.4], t: [0, 1.25, 0] },
+  keys: [
+    { t: 0, pose: B_READY },
+    { t: 0.08, pose: VB_STEP_BACK, ease: 'sine' },
+    { t: 0.16, pose: VB_TURN, ease: 'sine' },
+    { t: 0.3, pose: VB_PREP, ease: 'sine' },
+    { t: 0.42, pose: VB_PREP, ease: 'lin' },
+    { t: 0.49, pose: VB_MOLI, ease: 'sine' },
+    { t: 0.53, pose: VB_HIT, ease: 'in' },
+    { t: 0.58, pose: VB_THRU, ease: 'lin' },
+    { t: 0.64, pose: VB_CLOSE, ease: 'out' },
+    { t: 0.74, pose: VB_CLOSE, ease: 'lin' },
+    { t: 0.86, pose: VB_STEP_FWD, ease: 'sine' },
+    { t: 1, pose: B_READY, ease: 'sine' },
+  ],
+};
+
 // ===================================================================
 // 10. Squat jump
 // ===================================================================
@@ -885,4 +1013,4 @@ const SJ = {
   ],
 };
 
-export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLEE_FH, VOLEE_BH, BANDEJA, SJ];
+export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLEE_FH, VOLEE_BH, BANDEJA, VIBORA, SJ];

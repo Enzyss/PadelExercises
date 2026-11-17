@@ -493,6 +493,9 @@ window.fitBody = (exId, t, tgt, opt = {}) => { const e = byId(exId); const rig =
       c += (1 - r.dir.dot(rd)) * (tgt.racket.wd ?? 4) + (1 - r.face.dot(rf)) * (tgt.racket.wf ?? 2.5);
       c += ((p.wflex ** 2 + p.wdev ** 2) / 1600 + Math.max(0, Math.abs(p.pron) - 60) ** 2 / 900) * 0.4 + Math.max(0, p.wdev - 28) ** 2 * 0.02 + Math.max(0, -25 - p.wdev) ** 2 * 0.02 + Math.max(0, Math.abs(p.wflex) - 60) ** 2 * 0.02 + Math.max(0, Math.abs(p.pron) - 85) ** 2 * 0.02; }
     c += ((p.sr || 0) ** 2 + (p.hr || 0) ** 2) / 900 * 0.02 + Math.max(0, (p.elbow ?? 0) - 135) ** 2 * 0.01;
+    if (opt.clr) { const sd = (p1, q1, p2, q2) => { let b = 9; for (let i = 0; i <= 10; i++) { const a = p1.clone().lerp(q1, i / 10); const ab = q2.clone().sub(p2); const t = Math.max(0, Math.min(1, a.clone().sub(p2).dot(ab) / ab.lengthSq())); b = Math.min(b, a.distanceTo(p2.clone().addScaledVector(ab, t))); } return b; };
+      const A = wp('Hips'), B = wp('Spine2'); const cb = sd(wp('RightArm').lerp(wp('RightForeArm'), 0.35), wp('RightForeArm'), A, B) - 0.16, cf = sd(wp('RightForeArm'), wp('RightHand'), A, B) - 0.15;
+      err.clr = +Math.min(cb, cf).toFixed(3); c += (Math.max(0, opt.clr - cb) ** 2 + Math.max(0, opt.clr - cf) ** 2) * 3000; }
     c += (((p.hp - p0.hp) / 20) ** 2 + ((p.sp - p0.sp) / 20) ** 2 + ((p.hp - p.sp * 0.6 - 4) / 25) ** 2) * (opt.reg ?? 0.05);
     return { c, err }; };
   const lim = { flex: [-40, 180], abd: [-30, 170], hflex: [-40, 140], rot: [-90, 90], elbow: [0, 145], pron: [-90, 90], wflex: [-70, 70], wdev: [-30, 30] };
@@ -604,3 +607,25 @@ window.handIn2 = (exId, t, side = 0, over) => {
     if (d < -0.002) { n++; where[b] = (where[b] || 0) + 1; } else if (d < 0.01) near++; }
   return { n, near, minD: +minD.toFixed(3), where };
 };
+// fit the free (left) hand IK target + hint so the upper arm / forearm match measured directions (world)
+window.fitLeft = (exId, t, tgt, side = 0) => { const rig = stage.rig; const V = THREE.Vector3; const base = samplePose(byId(exId), t, side);
+  const wp = (n) => rig.b[n].getWorldPosition(new V()); const ua = new V(...tgt.Lua).normalize(), fa = new V(...tgt.Lfa).normalize();
+  const ev = (p) => { const pose = structuredClone(base); pose.L = { ...pose.L, t: [p[0], p[1], p[2]], hint: [p[3], p[4], p[5]] }; rig.apply(pose);
+    const a = wp('LeftForeArm').sub(wp('LeftArm')).normalize(), b = wp('LeftHand').sub(wp('LeftForeArm')).normalize();
+    return { c: (1 - a.dot(ua)) * 2 + (1 - b.dot(fa)) * 2 + (rig.state.arms.L.reachError || 0) * 20, e: [Math.round(Math.acos(Math.min(1, a.dot(ua))) * 57.3), Math.round(Math.acos(Math.min(1, b.dot(fa))) * 57.3)] }; };
+  let best = null; const h0 = base.L.hint || [0.6, -0.4, -0.6];
+  for (const s of [base.L.t, [0.3, 0.3, 0.35], [0.4, 0.55, 0.2], [0.45, 0.1, 0.3], [0.2, 0.6, 0.3], [0.55, 0.35, 0.0], [0.3, -0.2, 0.3]]) {
+    let p = [...s, ...h0], c = ev(p).c;
+    for (const st of [0.08, 0.04, 0.02, 0.01, 0.005]) { let imp = true; while (imp) { imp = false; for (let k = 0; k < 6; k++) for (const d of [st, -st]) { const q = [...p]; q[k] += k < 3 ? d : d * 10; const cq = ev(q).c; if (cq < c - 1e-7) { p = q; c = cq; imp = true; } } } }
+    if (!best || c < best.c) best = { c, p }; }
+  const r = ev(best.p); const rd = (x) => +x.toFixed(3);
+  return JSON.stringify({ t: best.p.slice(0, 3).map(rd), hint: best.p.slice(3).map((x) => +x.toFixed(2)), err: r.e }); };
+// verify-style limb/torso clearances over the whole cycle (both arms, both sides)
+window.armScan = (exId, N = 100) => { const rig = stage.rig; const V = THREE.Vector3; const wp = (n) => rig.b[n].getWorldPosition(new V()); const out = [];
+  const sd = (p1, q1, p2, q2) => { let b = 9; for (let i = 0; i <= 20; i++) { const a = p1.clone().lerp(q1, i / 20); const ab = q2.clone().sub(p2); const t = Math.max(0, Math.min(1, a.clone().sub(p2).dot(ab) / ab.lengthSq())); b = Math.min(b, a.distanceTo(p2.clone().addScaledVector(ab, t))); } return b; };
+  for (let side = 0; side < 2; side++) for (let f = 0; f <= N; f++) { rig.apply(samplePose(byId(exId), f / N, side)); const A = wp('Hips'), B = wp('Spine2');
+    for (const s of ['Left', 'Right']) { const o = s === 'Left' ? 'Right' : 'Left';
+      const c = { braccio: sd(wp(s + 'Arm').lerp(wp(s + 'ForeArm'), 0.35), wp(s + 'ForeArm'), A, B) - 0.16, avamb: sd(wp(s + 'ForeArm'), wp(s + 'Hand'), A, B) - 0.15,
+        mano: sd(wp(s + 'Hand'), wp(s + 'HandMiddle2'), A, B) - 0.145, coscia: Math.min(sd(wp(s + 'ForeArm'), wp(s + 'Hand'), wp(o + 'UpLeg'), wp(o + 'Leg')), sd(wp(s + 'ForeArm'), wp(s + 'Hand'), wp(s + 'UpLeg'), wp(s + 'Leg'))) - 0.105 };
+      for (const k in c) if (c[k] < 0) out.push(`${side} ${(f / N).toFixed(2)} ${s} ${k} ${c[k].toFixed(3)}`); } }
+  return out.join('\n'); };
