@@ -549,3 +549,58 @@ window.marks = (exId, ts, side = 0, over) => { const rig = stage.rig; const V = 
 // chest-space coordinates of a world point at phase t (for freeL targets)
 window.toChest = (exId, t, pts, side = 0) => { const rig = stage.rig; rig.apply(samplePose(byId(exId), t, side));
   return pts.map((p) => new THREE.Vector3(...p).sub(rig.chestP).applyQuaternion(rig.chestQ.clone().invert()).toArray().map((x) => +x.toFixed(3))); };
+// free-hand bones in racket coordinates (along the handle from the grip, across, along the palm-side normal)
+window.handOnRacket = (exId, t, side = 0, over) => { const rig = stage.rig; rig.apply(mergeOver(samplePose(byId(exId), t, side), over)); const rf = rig.racketFrame('R');
+  const across = rf.dir.clone().cross(rf.face); const out = {};
+  rig.b.LeftHand.traverse((o) => { if (!o.isBone) return; const d = o.getWorldPosition(new THREE.Vector3()).sub(rf.grip);
+    out[o.name.replace('LeftHand', '')] = [d.dot(rf.dir), d.dot(across), d.dot(rf.face)].map((x) => +x.toFixed(3)); });
+  return out; };
+// free-hand vertices inside the racket solid (ray parity against head, frame and throat meshes)
+window.handInRacket = (exId, t, side = 0, over) => {
+  const e = byId(exId); let pose = samplePose(e, t, side); pose = mergeOver(pose, over);
+  stage.rig.apply(pose); applyProps(stage, e, pose); stage.scene.updateMatrixWorld(true);
+  const rk = stage.racket; const solids = rk.children.filter((m) => m.isMesh && m.geometry.type !== 'CircleGeometry');
+  solids.forEach((m) => { m.material.side = THREE.DoubleSide; });
+  const free = pose.props.racket === 'L' ? 'Right' : 'Left';
+  const zW = new THREE.Vector3(0, 0, 1).transformDirection(rk.matrixWorld); const inv = rk.matrixWorld.clone().invert();
+  const rc = new THREE.Raycaster(); const v = new THREE.Vector3(); let n = 0, tot = 0; const where = {};
+  stage.model.traverse((m) => { if (!m.isSkinnedMesh) return; const sk = m.skeleton; const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    for (let i = 0; i < m.geometry.attributes.position.count; i++) {
+      let bi = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } }
+      const bn = sk.bones[bi].name.replace('mixamorig', '').replace(':', ''); if (!bn.startsWith(free + 'Hand')) continue; tot++;
+      m.getVertexPosition(i, v); m.localToWorld(v);
+      rc.set(v, zW); const hits = rc.intersectObjects(solids, false);
+      const byObj = new Map(); hits.forEach((h) => byObj.set(h.object, (byObj.get(h.object) || 0) + 1));
+      if ([...byObj.values()].some((c) => c % 2 === 1)) { n++; const b = bn.replace(free + 'Hand', '') || 'palm'; const l = v.clone().applyMatrix4(inv);
+        where[b] = where[b] || []; if (where[b].length < 2) where[b].push(l.toArray().map((x) => +x.toFixed(3))); }
+    } });
+  solids.forEach((m) => { m.material.side = THREE.FrontSide; });
+  return { n, tot, where };
+};
+// fast analytic version: hand vertices inside the racket (n) and within 1 cm of its surface (near)
+const rkPoly = (() => { let c = null; return () => { if (c) return c; const head = stage.racket.children.find((m) => m.geometry && m.geometry.type === 'ExtrudeGeometry');
+  const sh = head.geometry.parameters.shapes; const ex = (Array.isArray(sh) ? sh[0] : sh).extractPoints(18); return (c = { outer: ex.shape, hole: ex.holes[0] }); }; })();
+const inPoly = (P, x, y) => { let ins = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; if ((a.y > y) !== (b.y > y) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y) + a.x) ins = !ins; } return ins; };
+const edgeD = (P, x, y) => { let d = 9; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const a = P[i], b = P[j]; const vx = b.x - a.x, vy = b.y - a.y; const L2 = vx * vx + vy * vy; const u = L2 > 1e-12 ? Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / L2)) : 0; d = Math.min(d, Math.hypot(x - a.x - u * vx, y - a.y - u * vy)); } return d; };
+// signed distance (approx) from the racket solid in group-local coords; < 0 inside
+const rkSD = (x, y, z) => { const { outer, hole } = rkPoly();
+  const inO = inPoly(outer, x, y), dO = edgeD(outer, x, y); const inH = inPoly(hole, x, y), dH = edgeD(hole, x, y);
+  // in-plane signed distance of the head slab (bevel ~6 mm grows the outline and shrinks the hole)
+  let dp = inO ? (inH ? dH : -Math.min(dO, dH)) : dO; dp -= 0.006;
+  const dz = Math.abs(z) - 0.023; const head = dp > 0 && dz > 0 ? Math.hypot(dp, dz) : Math.max(dp, dz);
+  const y0 = 0.075, y1 = 0.125; const dyN = Math.max(y0 - y, y - y1, 0); const dr = Math.hypot(x, z) - 0.017;
+  const neck = y >= y0 && y <= y1 ? dr : Math.hypot(Math.max(dr, 0), dyN);
+  return Math.min(head, neck); };
+let handIdx = null;
+window.handIn2 = (exId, t, side = 0, over) => {
+  const e = byId(exId); let pose = samplePose(e, t, side); pose = mergeOver(pose, over);
+  stage.rig.apply(pose); applyProps(stage, e, pose); stage.scene.updateMatrixWorld(true);
+  const free = pose.props.racket === 'L' ? 'Right' : 'Left'; const inv = stage.racket.matrixWorld.clone().invert(); const v = new THREE.Vector3();
+  if (!handIdx || handIdx.free !== free) { handIdx = { free, list: [] }; stage.model.traverse((m) => { if (!m.isSkinnedMesh) return; const sk = m.skeleton; const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    for (let i = 0; i < m.geometry.attributes.position.count; i += 1) { let bi = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = sw.getComponent(i, k); if (w > bw) { bw = w; bi = si.getComponent(i, k); } }
+      const bn = sk.bones[bi].name.replace('mixamorig', '').replace(':', ''); if (bn.startsWith(free + 'Hand')) handIdx.list.push([m, i, bn.replace(free + 'Hand', '') || 'palm']); } }); }
+  let n = 0, near = 0, minD = 9; const where = {};
+  for (const [m, i, b] of handIdx.list) { m.getVertexPosition(i, v); m.localToWorld(v); v.applyMatrix4(inv); const x = side ? -v.x : v.x; const d = rkSD(x, v.y, v.z); minD = Math.min(minD, d);
+    if (d < -0.002) { n++; where[b] = (where[b] || 0) + 1; } else if (d < 0.01) near++; }
+  return { n, near, minD: +minD.toFixed(3), where };
+};

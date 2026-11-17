@@ -453,7 +453,10 @@ const LIFT = {
 const fk = (o) => ({ mode: 'fk', flex: 0, abd: 0, hflex: 0, rot: 0, elbow: 90, pron: 0, wflex: 0, wdev: 0, grip: 1, ...o });
 // free (left) hand: chest-space target, blended onto the racket throat by attachW
 const freeL = (t, hint, attachW = 0, grip = 0.3) => ({ mode: 'ik', t, hint, attachW, grip, pron: 10 });
-const throat = freeL([0.02, -0.16, 0.3], [0.7, -1, -0.3], 1, 0.85);
+// hand on the racket throat: closed around it just under the head, wrist turned so no finger enters the frame
+// (the wrist angles are refitted per pose: the forearm reaches the racket from a different direction in each phase)
+const onThroat = (t, hint, o = {}) => ({ ...freeL(t, hint, 1, 0.97), at: [0.076, 0.012, 0.095], pron: 34, wflex: 24, wdev: 28, ...o });
+const throat = onThroat([0.02, -0.16, 0.3], [0.7, -1, -0.3]);
 const R_READY = { mode: 'ik', space: 'world', t: [-0.131, 1.092, 0.296], hint: [-0.4, -1, -0.2], pron: -9, wflex: -8, wdev: 20, grip: 1 };
 const NET = P({
   hips: { p: [0, 0.95, -0.02], r: [12, 0, 0] },
@@ -482,7 +485,7 @@ const B_TURN = P({
   FL: { x: 0.25, z: 0.06, out: -45 },
   FR: { x: -0.1, z: -0.34, out: 72 },
   R: fk({ flex: 34, abd: 58, hflex: 61, rot: -8, elbow: 64, pron: -16, wflex: -12, wdev: 14, scap: [4, 0] }),
-  L: freeL([0.02, -0.1, 0.3], [0.7, -1, -0.3], 1, 0.85),
+  L: onThroat([0.02, -0.1, 0.3], [0.7, -1, -0.3], { at: [0.076, 0.024, 0.1], pron: 22, wdev: 22 }),
 }, B_READY);
 // preparazione: busto di profilo, gomito all'altezza della spalla, punta della racchetta alta,
 // mano sinistra alta che punta la palla
@@ -521,7 +524,9 @@ const B_THRU = P({ R: fk({ flex: 72, abd: 95, hflex: 72, rot: -17, elbow: 28, pr
 const B_STEP_FWD = P({ FR: { x: -0.16, z: -0.2, y: 0.07, heel: 10, toeFlat: false } }, lerpPose(B_FOLLOW, B_READY, 0.5));
 // racket kept a hand's width in front of the face while the shoulders turn
 const B_STEP_BACK = P({ FR: { x: -0.16, z: -0.2, y: 0.07, heel: 10, toeFlat: false },
-  R: fk({ flex: 22, abd: 24, hflex: 22, rot: 13, elbow: 95, pron: 16, wflex: -33, wdev: -13, scap: [2, 0] }) }, lerpPose(B_READY, B_TURN, 0.5));
+  R: fk({ flex: 22, abd: 24, hflex: 22, rot: 13, elbow: 95, pron: 16, wflex: -33, wdev: -13, scap: [2, 0] }),
+  // the left hand moves a little off the frame while the racket turns
+  L: onThroat([0.02, -0.13, 0.3], [0.7, -1, -0.3], { at: [0.064, 0.012, 0.1] }) }, lerpPose(B_READY, B_TURN, 0.5));
 
 // continental grip, shared by all the strokes
 const GRIP_CUES = [
@@ -559,7 +564,7 @@ const V_HIT = P({ hips: { p: [0.045, 0.885, 0.37], r: [13, -17, 1] }, spine: [9,
 const V_FOLLOW = P({ hips: { p: [0.035, 0.82, 0.48], r: [28, 4, -2] }, spine: [20, 5, 6], head: [-36, -6, 0],
   FR: { heel: 38 },
   R: fk({ flex: 18, abd: 106, hflex: 120, rot: -28, elbow: 34, pron: -14, wflex: -9, wdev: 10, scap: [2, -4] }),
-  L: freeL([0.02, -0.16, 0.3], [0.7, -1, -0.3], 1, 0.85), effort: 0.5 }, V_HIT);
+  L: onThroat([0.02, -0.16, 0.3], [0.7, -1, -0.3], { at: [0.068, -0.024, 0.1], pron: 26, wflex: 22, wdev: 24, grip: 0.66 }), effort: 0.5 }, V_HIT);
 // la racchetta sale sul lato destro della testa, mai davanti al viso
 const V_RISE = P({ R: fk({ flex: 19, abd: 43, hflex: 28, rot: -62, elbow: 115, pron: 33, wflex: -22, wdev: -25, scap: [3, 1] }),
   L: freeL([0.4, -0.08, 0.42], [0.7, -1, -0.1], 0.3, 0.3) }, lerpPose(V_LAND, V_PREP, 0.5));
@@ -568,7 +573,7 @@ const V_STEP = P({ FL: { x: 0.3, z: 0.36, y: 0.07, heel: 8, out: 8, toeFlat: fal
 // rientro: il piede sinistro torna indietro, poi il destro si rimette in linea
 const V_LIFT = P({ FL: { y: 0.04, heel: 10, toeFlat: false } }, V_FOLLOW);
 // le due mani riportano la racchetta davanti al petto mentre il piede sinistro rientra
-const V_BACK = P({ FL: { x: 0.27, z: 0.36, y: 0.07, heel: 8, toeFlat: false }, R: V_READY.R }, lerpPose(V_FOLLOW, V_LAND, 0.5));
+const V_BACK = P({ FL: { x: 0.27, z: 0.36, y: 0.07, heel: 8, toeFlat: false }, R: V_READY.R, L: throat }, lerpPose(V_FOLLOW, V_LAND, 0.5));
 const V_RET = P({ FL: { x: 0.25, z: 0.06 } }, V_LAND);
 const V_BACK2 = P({ FR: { x: -0.24, z: -0.13, y: 0.04, heel: 8, toeFlat: false } }, lerpPose(V_RET, V_READY, 0.5));
 
@@ -659,7 +664,7 @@ const VOLEE_FH = {
 const RV_PREP = P({ hips: { p: [0.15, 0.88, 0.07], r: [10, 62, 1] }, spine: [9, 16, 1], head: [-16, -70, 0],
   FL: { x: 0.4, z: -0.15, out: 45 },
   R: fk({ flex: 30, abd: 75, hflex: 95, rot: -28, elbow: 100, pron: 30, wflex: -12, wdev: -25, scap: [6, -4] }),
-  L: throat }, V_LAND);
+  L: onThroat([0.02, -0.16, 0.3], [0.7, -1, -0.3], { at: [0.076, 0.036, 0.11], pron: 46, wflex: 12, grip: 0.85 }) }, V_LAND);
 // impatto davanti al corpo, sul lato sinistro: la racchetta va avanti, la mano sinistra lascia il
 // cuore e va nella direzione opposta, il piede destro fa il passo di scarico in avanti
 const RV_HIT = P({ hips: { p: [0.12, 0.88, 0.38], r: [8, 61, 3] }, spine: [4, -7, 2], head: [-18, -50, 0],

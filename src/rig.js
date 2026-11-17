@@ -20,7 +20,11 @@ export const RACKET_THUMB = [106, 0, -76, 54];
 export const RACKET = {
   butt: -0.05, // end of the butt cap
   handleTop: 0.075, // top of the handle (overgrip)
-  throat: 0.13, // where the free hand holds it in the ready position (the open heart of the racket)
+  throat: 0.13, // the open heart of the racket
+  // where the free hand's wrist sits when it holds the throat: along the handle, across, along the palm-side
+  // normal. The hand wraps the throat just under the head, palm on the palm side of the racket hand
+  // (dev handIn2: no finger or palm inside the frame).
+  throatAt: [0.076, 0.012, 0.095],
   neck: 0.095, // start of the head outline
   top: 0.405, // tip of the head
   headC: 0.262, // centre of the hitting area
@@ -214,7 +218,10 @@ export class Rig {
       if (a.mode === 'ik' && a.attachW > 0 && this.racketSide) {
         // free hand blends between its own target and the racket throat
         const r = this.racketFrame(this.racketSide);
-        const throat = r.grip.clone().addScaledVector(r.dir, RACKET.throat).addScaledVector(r.face, 0.02);
+        // a.at: [along the handle, across (towards the thumb side of the racket hand), along the face normal]
+        const [al, ac, fo] = a.at || RACKET.throatAt;
+        const across = r.dir.clone().cross(r.face).multiplyScalar(this.racketSide === 'R' ? 1 : -1);
+        const throat = r.grip.clone().addScaledVector(r.dir, al).addScaledVector(across, ac).addScaledVector(r.face, fo);
         const t = toW(a.t).lerp(throat, Math.min(1, a.attachW));
         info = this.solveIK(L, t, toWd(a.hint || [sg * 0.3, -0.4, -1]));
       } else if (a.mode === 'ik') {
