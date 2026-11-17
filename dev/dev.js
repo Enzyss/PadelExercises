@@ -542,3 +542,10 @@ window.fitThumb = (exId = 'volee-dritto', t = 0.36, opt = {}) => { const e = byI
   for (const st of [5, 2, 1]) { let imp = true; while (imp) { imp = false; for (const k of ['x', 'y', 'z', 'f2']) for (const d of [st, -st]) { const q = { ...best, [k]: best[k] + d }; const r2 = ev(q.x, q.y, q.z, q.f2); if (r2.c < best.c - 1e-9) { best = { ...r2, x: q.x, y: q.y, z: q.z, f2: q.f2 }; imp = true; } } } }
   const f = (v) => (v * 100).toFixed(1);
   return `RACKET_THUMB = [${best.x}, ${best.y}, ${best.z}, ${best.f2}]  manico ${f(best.minH)}cm dita ${f(best.minF)}cm avanzamento ${f(best.adv)}cm punta-medio ${f(best.tip)}cm polpastrello ${f(best.padR)}cm cost ${best.c.toExponential(2)}`; };
+// world positions of the main landmarks (for placing hand/racket targets from the video)
+window.marks = (exId, ts, side = 0, over) => { const rig = stage.rig; const V = THREE.Vector3; const f = (v) => v.toArray().map((x) => +x.toFixed(2));
+  return ts.map((t) => { rig.apply(mergeOver(samplePose(byId(exId), t, side), over)); const w = (n) => f(rig.b[n].getWorldPosition(new V())); const rf = rig.racketFrame('R');
+    return `${t} Lsh ${w('LeftArm')} Rsh ${w('RightArm')} head ${w('Head')} hips ${w('Hips')} Relb ${w('RightForeArm')} grip ${f(rf.grip)} dir ${f(rf.dir)} face ${f(rf.face)} Lhand ${w('LeftHand')}`; }).join('\n'); };
+// chest-space coordinates of a world point at phase t (for freeL targets)
+window.toChest = (exId, t, pts, side = 0) => { const rig = stage.rig; rig.apply(samplePose(byId(exId), t, side));
+  return pts.map((p) => new THREE.Vector3(...p).sub(rig.chestP).applyQuaternion(rig.chestQ.clone().invert()).toArray().map((x) => +x.toFixed(3))); };

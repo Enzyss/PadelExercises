@@ -650,6 +650,120 @@ const VOLEE_FH = {
   ],
 };
 
+// ---------- Volée di rovescio (ricostruita sul tutorial di riferimento) ----------
+// Angoli ricavati dal video: stima della postura 3D sulle tre ripetizioni della volée normale,
+// con le direzioni nel piano dell'immagine corrette sulle posizioni 2D dei fotogrammi.
+// Attesa e split step: gli stessi della volée di dritto.
+// Preparazione: il busto gira verso sinistra, la racchetta va di lato all'altezza della testa
+// tenuta anche dalla mano sinistra sul cuore; il piede sinistro si apre.
+const RV_PREP = P({ hips: { p: [0.15, 0.88, 0.07], r: [10, 62, 1] }, spine: [9, 16, 1], head: [-16, -70, 0],
+  FL: { x: 0.4, z: -0.15, out: 45 },
+  R: fk({ flex: 30, abd: 75, hflex: 95, rot: -28, elbow: 100, pron: 30, wflex: -12, wdev: -25, scap: [6, -4] }),
+  L: throat }, V_LAND);
+// impatto davanti al corpo, sul lato sinistro: la racchetta va avanti, la mano sinistra lascia il
+// cuore e va nella direzione opposta, il piede destro fa il passo di scarico in avanti
+const RV_HIT = P({ hips: { p: [0.12, 0.88, 0.38], r: [8, 61, 3] }, spine: [4, -7, 2], head: [-18, -50, 0],
+  FL: { heel: 14 }, FR: { x: -0.27, z: 0.6, out: -8 },
+  R: fk({ flex: 15, abd: 43, hflex: 51, rot: -52, elbow: 49, pron: 9, wflex: 4, wdev: -3, scap: [4, 0] }),
+  L: freeL([0.48, 0.3, 0.05], [1, -0.5, -0.3], 0, 0.15), effort: 1 }, RV_PREP);
+// chiusura: peso sulla gamba destra, braccio destro disteso in avanti; braccio sinistro aperto
+// indietro, gomito all'altezza della spalla e mano in alto (le braccia vanno in direzioni opposte)
+const RV_FOLLOW = P({ hips: { p: [0.08, 0.86, 0.5], r: [13, 55, 2] }, spine: [12, -20, 10], head: [-26, -30, 0],
+  FL: { heel: 26 },
+  R: fk({ flex: 19, abd: 64, hflex: 18, rot: -86, elbow: 21, pron: 51, wflex: -18, wdev: -15, scap: [2, 0] }),
+  L: freeL([0.47, 0.36, -0.1], [1, -0.5, -0.3], 0, 0.15), effort: 0.5 }, RV_HIT);
+// il piede sinistro si stacca appena e si apre girando verso sinistra
+const RV_TURN = P({ FL: { x: 0.35, z: -0.04, y: 0.05, heel: 8, out: 25, toeFlat: false } }, lerpPose(V_LAND, RV_PREP, 0.5));
+// il piede destro si stacca e va avanti mentre la racchetta parte
+const RV_STEP = P({ FR: { x: -0.26, z: 0.2, y: 0.07, heel: 8, out: -4, toeFlat: false } }, lerpPose(RV_PREP, RV_HIT, 0.4));
+// rientro: il piede destro torna indietro, la mano sinistra riprende il cuore
+const RV_LIFT = P({ FR: { y: 0.04, heel: 10, toeFlat: false } }, RV_FOLLOW);
+const RV_BACK = P({ FL: RV_PREP.FL, FR: { x: -0.25, z: 0.22, y: 0.07, heel: 8, toeFlat: false }, R: V_READY.R,
+  L: freeL([0.3, -0.12, 0.3], [0.7, -1, -0.3], 0.5, 0.5) }, lerpPose(RV_FOLLOW, V_LAND, 0.5));
+// il destro torna al suo posto, poi il sinistro si richiude nella posizione di attesa
+const RV_RET = P({ FL: RV_PREP.FL, FR: V_READY.FR }, V_LAND);
+const RV_BACK2 = P({ FL: { x: 0.32, z: -0.05, y: 0.05, heel: 8, out: 25, toeFlat: false } }, lerpPose(RV_RET, V_READY, 0.5));
+
+const VOLEE_BH = {
+  id: 'volee-rovescio',
+  name: 'Volée di rovescio a vuoto',
+  short: 'Volée rovescio',
+  section: 'Colpi a vuoto',
+  sets: 2, reps: 8, unit: 'rip',
+  tempo: 'attesa · preparazione corta a sinistra · impatto davanti · passo di scarico con il destro',
+  dur: 3.2,
+  sided: true,
+  sideLabels: ['Destrorso', 'Mancino'],
+  handed: true,
+  equip: 'La tua racchetta, senza palla',
+  gripCues: GRIP_CUES,
+  prim: ['deltPost', 'estensori'],
+  sec: ['obliqui', 'quadricipiti', 'cuffia'],
+  why: 'La volée di rovescio è il colpo con cui blocchi le palle veloci che arrivano al corpo: non serve muovere i piedi né portare indietro la racchetta, sfrutti la velocità della palla. Ripeterla a vuoto fissa la preparazione corta con la mano sinistra sul cuore, l\'impatto davanti e il passo di scarico con il piede destro, e scalda spalla e avambraccio nella posizione che userai in partita.',
+  cues: [
+    'Attesa a 2-3 metri dalla rete, la stessa della volée di dritto: racchetta più o meno all\'altezza della testa, mano sinistra sul cuore, gambe leggermente piegate e un po\' più larghe delle spalle.',
+    'Preparazione: giri leggermente il busto e porti la racchetta di lato, a sinistra della testa, tenendola anche con la mano sinistra sul cuore. Non andare oltre la linea delle spalle. Il piede sinistro si apre un po\'.',
+    'Porta la racchetta in avanti e colpisci la palla davanti al corpo. Mentre colpisci la mano sinistra lascia il cuore e va nella direzione opposta: le braccia si aprono e danno spinta alla palla.',
+    'Passo di scarico in avanti con il piede destro: il peso va sulla gamba destra e la racchetta accompagna la palla verso l\'altro campo. Più peso in avanti vuol dire più profondità e più controllo della direzione.',
+    'Mezza altezza: piatta, portando la racchetta da dietro in avanti senza far cadere troppo la punta; oppure in backspin, con la punta un po\' più alta che scende verso il basso, e il finale diretto verso l\'altro campo. Dopo il vetro la palla cade più in fretta.',
+    'A fine colpo la mano sinistra torna sul cuore, il piede destro rientra e sei di nuovo in attesa.',
+  ],
+  errors: [
+    'Preparare con la racchetta troppo dietro: la palla entra troppo e la colpisci dietro rispetto al corpo, non davanti.',
+    'Fare il passo in avanti prima che arrivi la palla: te la ritrovi troppo vicina al corpo e non riesci più a colpirla da dietro in avanti.',
+    'Lasciare la racchetta con la mano sinistra dopo la preparazione: la gestisce solo il braccio destro, perdi controllo e la palla ha meno spinta. Le due braccia devono andare in direzioni opposte.',
+    'Peso all\'indietro all\'impatto: la palla si alza invece di andare verso il basso.',
+    'Palla bassa giocata in backspin: sale dopo la rete e gli avversari attaccano e ti tolgono la rete.',
+  ],
+  tactics: [
+    'Palle veloci al corpo: usa il rovescio. È un vero blocco: la racchetta davanti, senza muovere i piedi, sfruttando la velocità della palla. Di dritto puoi farlo solo spostando il braccio verso l\'interno, un movimento molto meno naturale.',
+    'Il giocatore di destra lo usa più di quello di sinistra quando ha il rovescio verso il centro: buona parte delle palle dalla diagonale gli arrivano sul rovescio. Da mancino a destra il rovescio è dalla parte della parete laterale.',
+    'Posizione: più la palla arriva dalla diagonale, più ti sposti verso il centro; più arriva dal tuo lungolinea, più ti sposti verso la griglia.',
+    'Direzione: soprattutto lo spazio libero, per far muovere gli avversari. Per aprire il campo gioca prima al centro e poi verso l\'angolo.',
+    'Profondità: la palla deve rimbalzare almeno mezzo metro dietro i piedi degli avversari, così devono giocare con il vetro e restano in fondo al campo.',
+    'Palla alta: se hai tempo evita il rovescio e girati per una bandeja o uno smash. Se la palla è rapida colpiscila piatta verso lo spazio libero e riprendi la rete.',
+    'Palla bassa (chiquita): piatta e profonda, non troppo veloce, in lungolinea: il fondo campo è più vicino ed è più facile tenere gli avversari dietro.',
+    'Alla griglia: da destra gioca la griglia corta, vicino alla rete, per far avvicinare l\'avversario e poi attaccare il centro rimasto scoperto. Da sinistra, su una palla alta colpita un po\' di lato, verso la griglia sulla diagonale.',
+  ],
+  court: {
+    hit: 0.46,
+    aimWin: [0.36, 0.46, 0.64, 0.84],
+    net: 2.5,
+    lob: { from: [5.2, 0.9, 11.6], start: 0.2 },
+    shots: [
+      { id: 'free', label: 'Spazio libero', color: '#3ddc84', land: [5.3, 11.1], time: 0.6, glassUp: 0.35,
+        text: 'La scelta principale: nello spazio libero, profonda, per far muovere gli avversari e tenerli in fondo al campo.' },
+      { id: 'center', label: 'Al centro (apre il campo)', color: '#4a8cff', land: [2.6, 10.9], time: 0.58, glassUp: 0.35,
+        text: 'Per aprire il campo: prima al centro, poi la volée successiva verso l\'angolo rimasto libero.' },
+      { id: 'line', label: 'Lungolinea (palla bassa)', color: '#ffc23a', land: [-1.3, 11.1], time: 0.6, glassUp: 0.35, flat: true,
+        text: 'Sulla palla bassa: piatta, profonda e non troppo veloce, in lungolinea. Il fondo campo è più vicino ed è più facile tenere gli avversari dietro.' },
+      { id: 'grid', label: 'Griglia corta', color: '#c77dff', land: [6.85, 5.4], time: 0.45, glassUp: 0.3, flat: true,
+        text: 'Da destra: alla griglia, corta e vicina alla rete. L\'avversario deve avvicinarsi e lascia scoperto il centro, che attacchi con il colpo dopo.' },
+      { id: 'up', label: 'Errore: si alza', color: '#ff5233', land: [3.6, 7.2], time: 0.7, glassUp: 0.9, error: true, errorAt: 'bounce', errorLabel: 'Si alza: attaccano la rete',
+        text: 'Da evitare: con il peso all\'indietro, o con il backspin sulla palla bassa, la palla sale dopo la rete e rimbalza corta. Gli avversari attaccano e ti tolgono la rete.' },
+    ],
+  },
+  props: { mat: [1.0, 1.3, 0, 0.1] },
+  cam: { p: [0.3, 1.4, 3.6], t: [0, 1.15, 0] },
+  keys: [
+    { t: 0, pose: V_READY },
+    { t: 0.06, pose: V_SPLIT, ease: 'out' },
+    { t: 0.12, pose: V_LAND, ease: 'in' },
+    { t: 0.2, pose: RV_TURN, ease: 'sine' },
+    { t: 0.28, pose: RV_PREP, ease: 'sine' },
+    { t: 0.36, pose: RV_PREP, ease: 'lin' },
+    { t: 0.41, pose: RV_STEP, ease: 'sine' },
+    { t: 0.46, pose: RV_HIT, ease: 'in' },
+    { t: 0.54, pose: RV_FOLLOW, ease: 'out' },
+    { t: 0.64, pose: RV_FOLLOW, ease: 'lin' },
+    { t: 0.69, pose: RV_LIFT, ease: 'sine' },
+    { t: 0.78, pose: RV_BACK, ease: 'sine' },
+    { t: 0.86, pose: RV_RET, ease: 'sine' },
+    { t: 0.93, pose: RV_BACK2, ease: 'sine' },
+    { t: 1, pose: V_READY, ease: 'sine' },
+  ],
+};
+
 const BANDEJA = {
   id: 'bandeja',
   name: 'Bandeja a vuoto',
@@ -766,4 +880,4 @@ const SJ = {
   ],
 };
 
-export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLEE_FH, BANDEJA, SJ];
+export const EXERCISES = [ER, PA, WR, CR, GB, LL, LUNGE_ROT, DEADBUG, LIFT, VOLEE_FH, VOLEE_BH, BANDEJA, SJ];

@@ -1,6 +1,6 @@
 # Padel Pre-Partita
 
-Web app con una routine di 12 esercizi da fare a casa prima di una partita di padel.
+Web app con una routine di 13 esercizi da fare a casa prima di una partita di padel.
 Ogni esercizio è animato su un manichino 3D con i muscoli coinvolti evidenziati
 (rosso = principali, giallo = secondari), con serie, ripetizioni, ritmo, istruzioni
 ed errori da evitare. La modalità **Inizia routine** conta le ripetizioni, gestisce
@@ -22,23 +22,25 @@ Serve solo **un elastico** (più una sedia e un tappetino) e, per i colpi, la tu
 | 9 | Diagonale con elastico sotto il piede | 2×8 per lato | Rotazione dal basso verso l'alto |
 | | **Colpi a vuoto (con la racchetta)** | | |
 | 10 | Volée di dritto | 2×8 | Preparazione corta, impatto davanti, passo di scarico |
-| 11 | Bandeja | 2×6 | Girata, preparazione alta, impatto al lato a braccio disteso, accompagnamento in avanti |
+| 11 | Volée di rovescio | 2×8 | Mano sinistra sul cuore, impatto davanti, braccia in direzioni opposte, passo di scarico col destro |
+| 12 | Bandeja | 2×6 | Girata, preparazione alta, impatto al lato a braccio disteso, accompagnamento in avanti |
 | | **Esplosività** | | |
-| 12 | Squat jump | 3×5 | Esplosività |
+| 13 | Squat jump | 3×5 | Esplosività |
 
-Volée di dritto e bandeja sono ricostruite fase per fase su due video tutorial di riferimento
+Volée di dritto, volée di rovescio e bandeja sono ricostruite fase per fase su tre video tutorial di riferimento
 (tecnica, errori più comuni e scelte tattiche). Gli angoli di braccia, tronco, bacino e gambe
 in ogni fase vengono da una stima della postura 3D sulle ripetizioni del video, corretta sulle
 posizioni 2D dei fotogrammi; l'orientamento della racchetta è misurato sui fotogrammi.
-Volée di rovescio e vibora arriveranno quando
-avranno un loro video di riferimento.
+La vibora arriverà quando avrà un suo video di riferimento.
 
-Per entrambi i colpi il pulsante **Campo e palla** mette il manichino su un campo da padel vero
+Per tutti e tre i colpi il pulsante **Campo e palla** mette il manichino su un campo da padel vero
 (10 × 20 m, rete, vetri e griglia) e mostra la palla: quella che arriva, l'impatto sulla
 racchetta e dove va nell'altro campo, con rimbalzi su pavimento, vetri e griglia. Si sceglie tra
 le direzioni consigliate nel video e l'errore da evitare:
 
 - volée di dritto: diagonale profonda, spazio libero, alla griglia, schiaffo al volo, errore (corta);
+- volée di rovescio: spazio libero, al centro per aprire il campo, lungolinea sulla palla bassa,
+  griglia corta, errore (palla che si alza);
 - bandeja: diagonale verso il vetro di fondo, lungolinea d'attacco, piatta alla griglia, errore
   (vetro laterale per primo, palla al centro).
 
